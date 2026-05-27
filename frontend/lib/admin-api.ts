@@ -24,6 +24,7 @@ export interface SourceHealth {
   consecutive_failures: number
   last_error_log: string | null
   enabled: boolean
+  status: 'critical' | 'warning'
 }
 
 export interface TranslationItem {
@@ -70,4 +71,9 @@ export const adminApi = {
     }),
   getTranslationQueue: (token: string) =>
     adminFetch<{ items: TranslationItem[] }>('/admin/translation-queue', token),
+  reviewTranslation: (logId: number, action: 'approve' | 'reject', token: string) =>
+    adminFetch(`/admin/translation-queue/${logId}`, token, {
+      method: 'PATCH',
+      body: JSON.stringify({ action }),
+    }),
 }
