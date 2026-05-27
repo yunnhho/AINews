@@ -31,21 +31,24 @@ services:
       timeout: 5s
       retries: 5
 
-  meilisearch:
-    image: getmeili/meilisearch:v1.7
+  elasticsearch:
+    build:
+      context: ./backend/es
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-masterKey}
-      MEILI_ENV: development
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     volumes:
-      - meilisearch_data:/meili_data
+      - es_data:/usr/share/elasticsearch/data
     ports:
-      - "7700:7700"
+      - "9200:9200"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -v '\"status\":\"red\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
 
   api:
     build:
@@ -56,7 +59,7 @@ services:
     environment:
       - POSTGRES_HOST=postgres
       - REDIS_URL=redis://redis:6379/0
-      - MEILISEARCH_URL=http://meilisearch:7700
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
     ports:
       - "8000:8000"
     depends_on:
@@ -64,7 +67,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      meilisearch:
+      elasticsearch:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
@@ -104,4 +107,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  meilisearch_data:
+  es_data:

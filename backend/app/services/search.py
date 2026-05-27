@@ -1,29 +1,56 @@
-"""Meilisearch 쿼리 래퍼 + 인덱스 설정."""
-from meilisearch_python_sdk import AsyncClient
+"""Elasticsearch 쿼리 래퍼 + 인덱스 설정."""
+from elasticsearch import AsyncElasticsearch, NotFoundError
 
 from app.config import settings
 
 INDEX_NAME = "cards"
-_SEARCHABLE = ["title", "summary", "problem", "idea", "tags_str"]
-_FILTERABLE = ["category", "card_type", "difficulty"]
-_SORTABLE = ["published_at_ts", "like_count"]
+
+_MAPPING = {
+    "settings": {
+        "analysis": {
+            "analyzer": {
+                "korean": {
+                    "type": "custom",
+                    "tokenizer": "nori_tokenizer",
+                    "filter": ["nori_part_of_speech"],
+                }
+            }
+        }
+    },
+    "mappings": {
+        "properties": {
+            "title":        {"type": "text", "analyzer": "korean"},
+            "summary":      {"type": "text", "analyzer": "korean"},
+            "problem":      {"type": "text", "analyzer": "korean"},
+            "idea":         {"type": "text", "analyzer": "korean"},
+            "tags":         {"type": "keyword"},
+            "category":     {"type": "keyword"},
+            "card_type":    {"type": "keyword"},
+            "difficulty":   {"type": "keyword"},
+            "published_at": {"type": "date"},
+            "like_count":   {"type": "integer"},
+        }
+    },
+}
 
 
-def _client() -> AsyncClient:
-    return AsyncClient(settings.MEILISEARCH_URL, settings.MEILISEARCH_MASTER_KEY)
+def _client() -> AsyncElasticsearch:
+    return AsyncElasticsearch(settings.ELASTICSEARCH_URL)
 
 
 async def setup_index() -> None:
-    """앱 시작 시 인덱스·속성 초기화 (멱등)."""
-    async with _client() as client:
-        try:
-            await client.create_index(INDEX_NAME, primary_key="id")
-        except Exception:
-            pass  # 이미 존재하면 무시
-        index = client.index(INDEX_NAME)
-        await index.update_searchable_attributes(_SEARCHABLE)
-        await index.update_filterable_attributes(_FILTERABLE)
-        await index.update_sortable_attributes(_SORTABLE)
+    """앱 시작 시 인덱스 초기화 (멱등)."""
+    es = _client()
+    try:
+        exists = await es.indices.exists(index=INDEX_NAME)
+        if not exists:
+            await es.indices.create(
+                index=INDEX_NAME,
+                settings=_MAPPING["settings"],
+                mappings=_MAPPING["mappings"],
+            )
+    finally:
+        await es.close()
 
 
 async def search_cards(
@@ -33,38 +60,58 @@ async def search_cards(
     limit: int = 20,
     offset: int = 0,
 ) -> dict:
-    filters: list[str] = []
+    filters: list[dict] = []
     if category:
-        filters.append(f'category = "{category}"')
+        filters.append({"term": {"category": category}})
     if card_type:
-        filters.append(f'card_type = "{card_type}"')
+        filters.append({"term": {"card_type": card_type}})
 
-    filter_str = " AND ".join(filters) if filters else None
-
-    async with _client() as client:
-        index = client.index(INDEX_NAME)
-        result = await index.search(
-            q,
-            limit=limit,
-            offset=offset,
-            filter=filter_str,
-            sort=["published_at_ts:desc"],
+    es = _client()
+    try:
+        result = await es.search(
+            index=INDEX_NAME,
+            query={
+                "bool": {
+                    "must": [
+                        {
+                            "multi_match": {
+                                "query": q,
+                                "fields": ["title^3", "summary^2", "problem", "idea"],
+                            }
+                        }
+                    ],
+                    "filter": filters,
+                }
+            },
+            sort=[{"published_at": "desc"}],
+            from_=offset,
+            size=limit,
         )
+    finally:
+        await es.close()
 
+    hits = result["hits"]["hits"]
+    total = result["hits"]["total"]["value"]
     return {
-        "hits": result.hits,
-        "total": result.estimated_total_hits or 0,
+        "hits": [h["_source"] for h in hits],
+        "total": total,
     }
 
 
 async def index_card(doc: dict) -> None:
-    """카드 문서 1건을 Meilisearch에 색인."""
-    async with _client() as client:
-        index = client.index(INDEX_NAME)
-        await index.add_documents([doc])
+    """카드 문서 1건을 Elasticsearch에 색인."""
+    es = _client()
+    try:
+        await es.index(index=INDEX_NAME, id=str(doc["id"]), document=doc)
+    finally:
+        await es.close()
 
 
 async def delete_card(card_id: int) -> None:
-    async with _client() as client:
-        index = client.index(INDEX_NAME)
-        await index.delete_document(str(card_id))
+    es = _client()
+    try:
+        await es.delete(index=INDEX_NAME, id=str(card_id))
+    except NotFoundError:
+        pass
+    finally:
+        await es.close()

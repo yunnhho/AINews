@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.exceptions import AppError, app_error_handler, generic_exception_handler, http_exception_handler
 from app.redis import close_redis, get_redis
-from app.routers import auth, cards, health, interactions, me, recommendations, search
+from app.routers import admin, alerts, auth, cards, health, interactions, me, push, recommendations, search
 from app.services.search import setup_index
 
 
@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
     try:
         await setup_index()
     except Exception:
-        pass  # Meilisearch가 없어도 앱은 기동
+        pass  # Elasticsearch가 없어도 앱은 기동
     yield
     await close_redis()
 
@@ -52,3 +52,6 @@ app.include_router(interactions.router)
 app.include_router(me.router)
 app.include_router(search.router)
 app.include_router(cards.router)
+app.include_router(admin.router)
+app.include_router(alerts.router)
+app.include_router(push.router)

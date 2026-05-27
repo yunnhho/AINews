@@ -14,9 +14,8 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # Meilisearch
-    MEILISEARCH_URL: str = "http://localhost:7700"
-    MEILISEARCH_MASTER_KEY: str = "masterKey"
+    # Elasticsearch
+    ELASTICSEARCH_URL: str = "http://localhost:9200"
 
     # Claude
     ANTHROPIC_API_KEY: str = ""
@@ -34,6 +33,14 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_SECRET: str = ""
     GITHUB_REDIRECT_URI: str = "http://localhost:8000/v1/auth/github/callback"
 
+    # OAuth — Kakao
+    KAKAO_CLIENT_ID: str = ""
+    KAKAO_CLIENT_SECRET: str = ""
+    KAKAO_REDIRECT_URI: str = "http://localhost:8000/v1/auth/kakao/callback"
+
+    # Expo Push
+    EXPO_ACCESS_TOKEN: str = ""
+
     # JWT
     JWT_SECRET: str = "change-me"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
@@ -46,9 +53,27 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
 
+    # Admin
+    ADMIN_USER_IDS: str = ""
+    MONTHLY_BUDGET_USD: float = 100.0
+
+    # Alerts
+    ALERT_SLACK_WEBHOOK_URL: str = ""
+    ALERT_EMAIL_TO: str = ""
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
+
+    @property
+    def admin_user_ids_list(self) -> list[int]:
+        if not self.ADMIN_USER_IDS:
+            return []
+        return [int(uid.strip()) for uid in self.ADMIN_USER_IDS.split(",") if uid.strip().isdigit()]
 
 
 settings = Settings()

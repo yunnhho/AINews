@@ -1,0 +1,27 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "korean": {
+          "type": "custom",
+          "tokenizer": "nori_tokenizer",
+          "filter": ["nori_part_of_speech"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "title":        { "type": "text", "analyzer": "korean" },
+      "summary":      { "type": "text", "analyzer": "korean" },
+      "problem":      { "type": "text", "analyzer": "korean" },
+      "idea":         { "type": "text", "analyzer": "korean" },
+      "tags":         { "type": "keyword" },
+      "category":     { "type": "keyword" },
+      "card_type":    { "type": "keyword" },
+      "difficulty":   { "type": "keyword" },
+      "published_at": { "type": "date" },
+      "like_count":   { "type": "integer" }
+    }
+  }
+}
