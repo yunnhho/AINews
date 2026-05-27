@@ -1,0 +1,60 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { clsx } from 'clsx'
+import { useAuthStore } from '@/stores/auth'
+
+const NAV = [
+  { href: '/admin', label: '대시보드', icon: '📊' },
+  { href: '/admin/batches', label: '배치 이력', icon: '🔄' },
+  { href: '/admin/sources', label: '소스 관리', icon: '📡' },
+  { href: '/admin/translation', label: '번역 큐', icon: '🌐' },
+  { href: '/admin/costs', label: '비용 현황', icon: '💰' },
+]
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { token } = useAuthStore()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  useEffect(() => {
+    if (!token) router.replace('/')
+  }, [token, router])
+
+  if (!token) return null
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      {/* 사이드바 */}
+      <aside className="w-52 flex-shrink-0 bg-white border-r border-gray-200 pt-14">
+        <nav className="p-3 space-y-1">
+          {NAV.map(({ href, label, icon }) => {
+            const isActive = pathname === href
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={clsx(
+                  'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
+                  isActive
+                    ? 'bg-blue-50 text-blue-700 font-medium'
+                    : 'text-gray-600 hover:bg-gray-100',
+                )}
+              >
+                <span>{icon}</span>
+                {label}
+              </Link>
+            )
+          })}
+        </nav>
+      </aside>
+
+      {/* 메인 */}
+      <main className="flex-1 pt-14 overflow-auto">
+        <div className="max-w-5xl mx-auto p-6">{children}</div>
+      </main>
+    </div>
+  )
+}

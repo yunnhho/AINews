@@ -1,0 +1,42 @@
+version: "3.9"
+
+# 로컬 개발 오버라이드: 볼륨 마운트 + hot reload
+# 사용: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - APP_ENV=development
+
+  worker:
+    build:
+      context: .
+      dockerfile: pipeline/Dockerfile
+      target: development
+    volumes:
+      - ./pipeline:/app
+      - ./backend:/backend
+    command: >
+      watchmedo auto-restart --directory=/app --pattern="*.py" --recursive --
+      celery -A pipeline.celery_app worker --loglevel=debug --max-tasks-per-child=50
+    environment:
+      - APP_ENV=development
+
+  beat:
+    build:
+      context: .
+      dockerfile: pipeline/Dockerfile
+      target: development
+    volumes:
+      - ./pipeline:/app
+      - ./backend:/backend
+    command: celery -A pipeline.celery_app beat --loglevel=debug
+    environment:
+      - APP_ENV=development
