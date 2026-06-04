@@ -3,9 +3,9 @@ from datetime import datetime
 
 from sqlalchemy import (
     BigInteger, Boolean, CheckConstraint, DateTime, Enum, ForeignKey,
-    Index, Integer, String, Text, UniqueConstraint, func,
+    Index, Integer, String, Text, func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -77,6 +77,9 @@ class Card(Base):
     thumbnail_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     like_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     bookmark_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # 역번역 검증 통과 카드만 공개 피드/검색에 노출. 실패 카드는 비공개 초안으로
+    # 저장되어 관리자 번역 검토 큐에서 승인 대기한다.
+    is_published: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
     batch_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     published_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -99,7 +102,7 @@ class Card(Base):
             "(card_type = 'TECHNIQUE' AND problem IS NOT NULL AND idea IS NOT NULL)",
             name="card_type_fields",
         ),
-        Index("idx_cards_feed", "category", "card_type", "published_at"),
+        Index("idx_cards_feed", "is_published", "category", "card_type", "published_at"),
     )
 
 

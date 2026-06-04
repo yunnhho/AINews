@@ -14,6 +14,9 @@ app = Celery(
     backend=result_backend,
     include=[
         "pipeline.tasks.orchestrate",
+        "pipeline.tasks.check_source_health",
+        "pipeline.tasks.train_cf",
+        "pipeline.tasks.send_push",
     ],
 )
 
@@ -55,6 +58,11 @@ app.conf.update(
             "task": "pipeline.tasks.orchestrate.run_batch",
             "schedule": crontab(hour=9, minute=0),
             "kwargs": {"scheduled_hour": 18},
+        },
+        # CF 모델 일 1회 재학습 — KST 02:00 (UTC 17:00), 자정 배치 이후
+        "train-cf-model-daily": {
+            "task": "pipeline.tasks.train_cf.train_cf_model",
+            "schedule": crontab(hour=17, minute=0),  # KST 02:00
         },
     },
 )

@@ -2,8 +2,9 @@ from fastapi import Depends, Header
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
-from app.exceptions import UnauthorizedError
+from app.exceptions import ForbiddenError, UnauthorizedError
 from app.models.user import User
 from app.services.auth import decode_token
 
@@ -42,3 +43,11 @@ async def optional_user(
     db: AsyncSession = Depends(get_db),
 ) -> User | None:
     return await _get_user_from_token(authorization, db, required=False)
+
+
+async def get_admin_user(
+    user: User = Depends(get_current_user),
+) -> User:
+    if user.id not in settings.admin_user_ids_list:
+        raise ForbiddenError()
+    return user

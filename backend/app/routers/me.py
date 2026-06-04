@@ -36,7 +36,7 @@ async def get_my_bookmarks(
     stmt = (
         select(Card)
         .options(selectinload(Card.tags))
-        .where(Card.id.in_(bookmarked_card_ids))
+        .where(Card.id.in_(bookmarked_card_ids), Card.is_published.is_(True))
         .order_by(Card.published_at.desc())
     )
 

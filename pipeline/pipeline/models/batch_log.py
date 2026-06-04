@@ -3,11 +3,13 @@ import os
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import select, update
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://aipulse:aipulse@postgres:5432/aipulse")
-_engine = create_async_engine(database_url, pool_pre_ping=True)
+# run_sync()가 호출마다 새 이벤트 루프를 생성하므로 NullPool로 커넥션 재사용을 막는다.
+_engine = create_async_engine(database_url, poolclass=NullPool)
 _SessionLocal = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
 
 

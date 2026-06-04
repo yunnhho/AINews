@@ -28,12 +28,16 @@ _B1_REPOS: list[str] = [
 def collect_group_b1() -> list[RawItem]:
     """B-1 GitHub Releases 수집. Celery 태스크에서 동기 호출."""
     since = datetime.now(timezone.utc) - timedelta(hours=_WINDOW_HOURS)
+    disabled = health_svc.run_sync(health_svc.get_disabled_sources())
     token = os.getenv("GITHUB_TOKEN", "")
     all_items: list[RawItem] = []
 
     for repo in _B1_REPOS:
-        adapter = GitHubReleasesAdapter(repo=repo, token=token)
         source_name = repo.split("/")[-1]
+        if source_name in disabled:
+            logger.info(f"[Group B-1] {repo}: 비활성화됨 — 스킵")
+            continue
+        adapter = GitHubReleasesAdapter(repo=repo, token=token)
         try:
             items = adapter.fetch(since)
             all_items.extend(items)

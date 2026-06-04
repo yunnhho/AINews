@@ -58,9 +58,13 @@ _C1_SOURCES: list[dict] = [
 def collect_group_c1() -> list[RawItem]:
     """C-1 엔지니어링 블로그 수집. Celery 태스크에서 동기 호출."""
     since = datetime.now(timezone.utc) - timedelta(hours=_WINDOW_HOURS)
+    disabled = health_svc.run_sync(health_svc.get_disabled_sources())
     all_items: list[RawItem] = []
 
     for src in _C1_SOURCES:
+        if src["name"] in disabled:
+            logger.info(f"[Group C-1] {src['name']}: 비활성화됨 — 스킵")
+            continue
         adapter = RSSAdapter(
             feed_url=src["url"],
             source_name=src["name"],

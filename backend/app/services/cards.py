@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -89,6 +89,7 @@ async def get_feed(
     stmt = (
         select(Card)
         .options(selectinload(Card.tags))
+        .where(Card.is_published.is_(True))
         .order_by(Card.published_at.desc())
     )
 
@@ -159,7 +160,9 @@ async def get_card_by_id(
     current_user: User | None,
 ) -> NewsCardResponse | TechniqueCardResponse:
     result = await db.execute(
-        select(Card).options(selectinload(Card.tags)).where(Card.id == card_id)
+        select(Card)
+        .options(selectinload(Card.tags))
+        .where(Card.id == card_id, Card.is_published.is_(True))
     )
     card = result.scalar_one_or_none()
     if card is None:

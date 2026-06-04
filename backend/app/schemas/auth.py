@@ -15,3 +15,7 @@ class UserProfile(BaseModel):
     avatar_url: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class AuthCodeExchangeRequest(BaseModel):
+    code: str

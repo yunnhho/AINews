@@ -4,11 +4,11 @@
 
 ## 도입 단계
 
-| 단계 | 소스 그룹 | 시기 |
-|---|---|---|
-| Phase 1 (MVP) | 그룹 A 전체 + 그룹 B-1 + 그룹 C-1 일부 + 그룹 D-1 일부 | MVP |
-| Phase 2 | 그룹 B-2, B-3 + 그룹 C-2 | 앱 출시 후 |
-| Phase 3 | 그룹 D-2 (이메일 IMAP) | 고도화 단계 |
+| 단계 | 소스 그룹 | 시기 | 상태 |
+|---|---|---|---|
+| Phase 1 (MVP) | 그룹 A 전체 + 그룹 B-1 + 그룹 C-1 일부 + 그룹 D-1 일부 | MVP | ✅ 완료 |
+| Phase 2 | 그룹 B-2, B-3 + 그룹 C-2 | 앱 출시 후 | ✅ 완료 (S6) |
+| Phase 3 | 그룹 D-2 (이메일 IMAP) | 고도화 단계 | ✅ 완료 (S6) |
 
 ---
 
@@ -46,24 +46,26 @@
 
 **수집 조건**: CHANGELOG 본문 300자 미만이면 단순 버전업으로 제외
 
-### B-2. Trending Repos (Phase 2)
+### B-2. Trending Repos — GitHub Search API (Phase 2) ✅
 
-| 토픽 | 최소 별 수 | 수집 주기 |
+| 토픽 | 최소 별 수 | 수집 주기 | 구현 |
+|---|---|---|---|
+| `topic:llm` | 100개 | 일 1회 (KST 00시) | `group_b2.py` |
+| `topic:llm-agents` | 50개 | 일 1회 | `group_b2.py` |
+| `topic:rag` | 50개 | 일 1회 | `group_b2.py` |
+| `topic:mcp` | 30개 | 일 1회 | `group_b2.py` |
+| `topic:ai-coding` | 50개 | 일 1회 | `group_b2.py` |
+
+**어댑터**: `pipeline/adapters/github_trending.py` (GitHubTrendingAdapter)
+
+### B-3. Awesome 리스트 README 변경 감지 (Phase 2) ✅
+
+| 리스트 | 추적 방식 | 구현 |
 |---|---|---|
-| `topic:llm` | 100개 | 일 1회 (00시) |
-| `topic:llm-agents` | 50개 | 일 1회 |
-| `topic:rag` | 50개 | 일 1회 |
-| `topic:mcp` | 30개 | 일 1회 |
-| `topic:ai-coding` | 50개 | 일 1회 |
-
-### B-3. Awesome 리스트 README 변경 감지 (Phase 2)
-
-| 리스트 | 추적 방식 |
-|---|---|
-| `Hannibal046/Awesome-LLM` | README.md commit diff 분석 |
-| `e2b-dev/awesome-ai-agents` | README.md commit diff 분석 |
-| `aishwaryanr/awesome-generative-ai-guide` | README.md commit diff 분석 |
-| `punkpeye/awesome-mcp-servers` | README.md commit diff 분석 |
+| `Hannibal046/Awesome-LLM` | README.md commit diff 분석 | `group_b3.py` |
+| `e2b-dev/awesome-ai-agents` | README.md commit diff 분석 | `group_b3.py` |
+| `aishwaryanr/awesome-generative-ai-guide` | README.md commit diff 분석 | `group_b3.py` |
+| `punkpeye/awesome-mcp-servers` | README.md commit diff 분석 | `group_b3.py` |
 
 ---
 
@@ -82,15 +84,17 @@
 | Replit Blog | 프로그래밍 | ✅ |
 | Google DeepMind Blog | 프로그래밍/일반 | ✅ |
 
-### C-2. 개인 엔지니어 블로그 (Phase 2)
+### C-2. 개인 엔지니어 블로그 (Phase 2) ✅
 
-| 블로거 | URL | 강점 분야 |
+| 블로거 | RSS | 강점 분야 |
 |---|---|---|
-| Simon Willison | `simonwillison.net` | AI 엔지니어링 전반, 실험 기록 |
-| Eugene Yan | `eugeneyan.com` | LLM 시스템 설계, 평가 |
-| Lilian Weng | `lilianweng.github.io` | 딥러닝 이론, 에이전트 |
-| Chip Huyen | `huyenchip.com` | ML 시스템, LLMOps |
-| Hamel Husain | `hamel.dev` | LLM 평가, RAG 패턴 |
+| Simon Willison | `simonwillison.net/atom/everything/` | AI 엔지니어링 전반, 실험 기록 |
+| Eugene Yan | `eugeneyan.com/feed.xml` | LLM 시스템 설계, 평가 |
+| Lilian Weng | `lilianweng.github.io/index.xml` | 딥러닝 이론, 에이전트 |
+| Chip Huyen | `huyenchip.com/feed.xml` | ML 시스템, LLMOps |
+| Hamel Husain | `hamel.dev/feed.xml` | LLM 평가, RAG 패턴 |
+
+**구현**: `pipeline/sources/group_c2.py`
 
 ### C-3. OpenAI Cookbook (Phase 2)
 
@@ -111,16 +115,19 @@
 | The Batch (DeepLearning.AI) | 주 1회 |
 | Ahead of AI (Sebastian Raschka) | 격주 |
 
-### D-2. 이메일 IMAP (Phase 3)
+### D-2. 이메일 IMAP (Phase 3) ✅
 
-| 뉴스레터 | 수집 방식 | 주기 |
-|---|---|---|
-| TLDR AI | 전용 메일박스 → IMAP 폴링 | 일 1회 |
-| Ben's Bites | 전용 메일박스 → IMAP 폴링 | 일 1회 |
-| The Rundown AI | 전용 메일박스 → IMAP 폴링 | 일 1회 |
-| AI Engineer Weekly | 전용 메일박스 → IMAP 폴링 | 주 1회 |
+| 뉴스레터 | 발신자 이메일 | 수집 방식 | 주기 |
+|---|---|---|---|
+| TLDR AI | `dan@tldrnewsletter.com` | IMAP 폴링 | 일 1회 |
+| Ben's Bites | `bens-bites@bensbites.beehiiv.com` | IMAP 폴링 | 일 1회 |
+| The Rundown AI | `therundownai@mail.beehiiv.com` | IMAP 폴링 | 일 1회 |
+| AI Engineer Weekly | `contact@aiweekly.co` | IMAP 폴링 | 주 1회 |
 
-**인프라**: 전용 Gmail 계정 + 2FA + 앱 비밀번호 + `imap_tools` 라이브러리
+**인프라**: 전용 Gmail 계정 + 2FA + 앱 비밀번호 + `imap-tools` 라이브러리
+**어댑터**: `pipeline/adapters/imap.py` (IMAPAdapter)
+**구현**: `pipeline/sources/group_d2.py`
+**환경변수**: `IMAP_HOST`, `IMAP_USER`, `IMAP_PASSWORD`, `IMAP_MAILBOX`
 
 ---
 

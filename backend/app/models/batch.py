@@ -83,4 +83,21 @@ class SourceHealth(Base):
     )
 
 
+class AlertLog(Base):
+    __tablename__ = "alert_logs"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    alert_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    source_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    sent_via: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("idx_alert_logs_created", "created_at"),
+    )
+
+
 from app.models.card import Card  # noqa: E402, F401

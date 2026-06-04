@@ -62,10 +62,14 @@ _RSS_SOURCES: list[dict] = [
 def collect_group_a() -> list[RawItem]:
     """그룹 A 전체 소스 수집. Celery 태스크에서 동기 호출."""
     since = datetime.now(timezone.utc) - timedelta(hours=_WINDOW_HOURS)
+    disabled = health_svc.run_sync(health_svc.get_disabled_sources())
     all_items: list[RawItem] = []
 
     # RSS 소스
     for src in _RSS_SOURCES:
+        if src["name"] in disabled:
+            logger.info(f"[Group A] {src['name']}: 비활성화됨 — 스킵")
+            continue
         adapter = RSSAdapter(
             feed_url=src["url"],
             source_name=src["name"],
@@ -82,6 +86,9 @@ def collect_group_a() -> list[RawItem]:
             health_svc.run_sync(health_svc.record_failure(src["name"], "NEWS_RSS", str(exc)))
 
     # Hacker News
+    if "Hacker News" in disabled:
+        logger.info("[Group A] Hacker News: 비활성화됨 — 스킵")
+        return all_items
     hn_adapter = HackerNewsAdapter()
     try:
         hn_items = hn_adapter.fetch(since)

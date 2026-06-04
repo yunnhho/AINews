@@ -1,8 +1,13 @@
 """카드 DB 저장 + Elasticsearch 인덱싱.
 
 orchestrate.py 호출 시그니처:
-  publish_news_card(card: NewsCardData, batch_id: str) -> bool
-  publish_technique_card(card: TechniqueCardData, batch_id: str, back_text, score, passed) -> bool
+  publish_news_card(card, batch_id, back_text, score, passed) -> bool
+  publish_technique_card(card, batch_id, back_text, score, passed) -> bool
+
+역번역 검증을 통과한(passed=True) 카드만 is_published=True로 공개 발행하고
+Elasticsearch에 색인한다. 실패한(passed=False) 영어 원본 카드는 is_published=False
+초안으로 저장되고 TranslationLog가 기록되어 관리자 번역 검토 큐로 들어간다.
+반환값은 "공개 발행 여부"(passed && 신규)이며, 초안 저장·중복은 False.
 """
 import asyncio
 import os
@@ -11,9 +16,11 @@ from datetime import timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import selectinload
+from sqlalchemy.pool import NullPool
 
 _DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://aipulse:aipulse@postgres:5432/aipulse")
-_engine = create_async_engine(_DATABASE_URL, pool_pre_ping=True)
+# _run()이 카드마다 새 이벤트 루프를 생성하므로 NullPool로 커넥션 재사용을 막는다.
+_engine = create_async_engine(_DATABASE_URL, poolclass=NullPool)
 _Session = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -103,7 +110,14 @@ async def _index(card) -> None:
         pass
 
 
-async def _save_news(card_data, batch_id: str) -> bool:
+async def _save_news(
+    card_data,
+    batch_id: str,
+    back_text: str | None,
+    score: float,
+    passed: bool,
+) -> bool:
+    from app.models.batch import TranslationLog
     from app.models.card import Card, CardType, Category, Difficulty
 
     async with _Session() as session:
@@ -128,12 +142,28 @@ async def _save_news(card_data, batch_id: str) -> bool:
                 original_lang=_to_original_lang(card_data.original_lang),
                 category=Category(card_data.category),
                 difficulty=Difficulty(card_data.difficulty),
+                is_published=passed,
                 batch_id=batch_id,
                 published_at=published_at,
                 tags=tags,
             )
             session.add(card)
+            await session.flush()
+
+            if card_data.original_lang.upper() == "EN":
+                session.add(TranslationLog(
+                    card_id=card.id,
+                    original_text=(card_data.source_name + "\n" + card_data.title)[:2000],
+                    translated_text=card_data.summary,
+                    back_translated_text=back_text,
+                    similarity_score=score,
+                    passed=passed,
+                ))
+
             await session.commit()
+
+            if not passed:
+                return False  # 비공개 초안 — 색인하지 않음
 
             result = await session.execute(
                 select(Card).options(selectinload(Card.tags)).where(Card.id == card.id)
@@ -183,6 +213,7 @@ async def _save_technique(
                 original_lang=_to_original_lang(card_data.original_lang),
                 category=Category(card_data.category),
                 difficulty=Difficulty(card_data.difficulty),
+                is_published=passed,
                 batch_id=batch_id,
                 published_at=published_at,
                 tags=tags,
@@ -202,6 +233,9 @@ async def _save_technique(
 
             await session.commit()
 
+            if not passed:
+                return False  # 비공개 초안 — 색인하지 않음
+
             result = await session.execute(
                 select(Card).options(selectinload(Card.tags)).where(Card.id == card.id)
             )
@@ -216,8 +250,14 @@ async def _save_technique(
 
 # ── 공개 인터페이스 (orchestrate.py 호출 시그니처와 일치) ──────────────
 
-def publish_news_card(card_data, batch_id: str) -> bool:
-    return _run(_save_news(card_data, batch_id))
+def publish_news_card(
+    card_data,
+    batch_id: str,
+    back_text: str | None,
+    score: float,
+    passed: bool,
+) -> bool:
+    return _run(_save_news(card_data, batch_id, back_text, score, passed))
 
 
 def publish_technique_card(

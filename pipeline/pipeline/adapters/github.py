@@ -1,10 +1,11 @@
 """GitHub Releases API 어댑터."""
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 
 import httpx
 
 from pipeline.adapters.base import BaseAdapter, RawItem, SourceGroup
+from pipeline.models import source_health as health_svc
 
 _BASE_URL = "https://api.github.com"
 _MIN_BODY_LEN = 300  # 300자 미만 릴리스 제외
@@ -40,7 +41,9 @@ class GitHubReleasesAdapter(BaseAdapter):
         reset_ts = resp.headers.get("X-RateLimit-Reset", "?")
 
         if resp.status_code == 403:
-            # Rate limit — 403 기록 후 빈 목록 반환 (다음 배치에 재시도)
+            health_svc.run_sync(
+                health_svc.record_failure(self.source_name, "GITHUB", "403 rate limit")
+            )
             return []
 
         if resp.status_code == 404:

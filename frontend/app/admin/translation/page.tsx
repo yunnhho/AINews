@@ -16,6 +16,21 @@ export default function TranslationPage() {
     adminApi.getTranslationQueue(token).then((r) => setItems(r.items)).catch(() => {}).finally(() => setLoading(false))
   }, [token])
 
+  async function handleReview(logId: number, action: 'approve' | 'reject') {
+    if (!token) return
+    try {
+      await adminApi.reviewTranslation(logId, action, token)
+      setItems((prev) =>
+        action === 'reject'
+          ? prev.filter((i) => i.id !== logId)
+          : prev.map((i) => (i.id === logId ? { ...i, passed: true } : i)),
+      )
+      if (expanded === logId) setExpanded(null)
+    } catch {
+      // 실패 시 무시 (UI 유지)
+    }
+  }
+
   const failed = items.filter((i) => !i.passed)
   const passed = items.filter((i) => i.passed)
 
@@ -74,6 +89,22 @@ export default function TranslationPage() {
                     <div>
                       <p className="font-semibold text-gray-500 mb-1">역번역</p>
                       <p className="text-gray-700 bg-gray-50 rounded p-2">{item.back_translated_text}</p>
+                    </div>
+                  )}
+                  {!item.passed && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleReview(item.id, 'approve')}
+                        className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                      >
+                        ✅ 통과
+                      </button>
+                      <button
+                        onClick={() => handleReview(item.id, 'reject')}
+                        className="px-3 py-1.5 text-xs font-medium bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                      >
+                        🗑️ 삭제
+                      </button>
                     </div>
                   )}
                 </div>

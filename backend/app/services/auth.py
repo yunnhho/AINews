@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -8,6 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.exceptions import UnauthorizedError
 from app.models.user import User
+
+_AUTH_CODE_PREFIX = "auth_code:"
+_AUTH_CODE_TTL = 300  # 5분 일회용
 
 ALGORITHM = "HS256"
 
@@ -30,13 +34,24 @@ OAUTH_CONFIGS = {
         "client_secret_key": "GITHUB_CLIENT_SECRET",
         "redirect_uri_key": "GITHUB_REDIRECT_URI",
     },
+    "kakao": {
+        "auth_url": "https://kauth.kakao.com/oauth/authorize",
+        "token_url": "https://kauth.kakao.com/oauth/token",
+        "userinfo_url": "https://kapi.kakao.com/v2/user/me",
+        "scopes": "profile_nickname profile_image",
+        "client_id_key": "KAKAO_CLIENT_ID",
+        "client_secret_key": "KAKAO_CLIENT_SECRET",
+        "redirect_uri_key": "KAKAO_REDIRECT_URI",
+    },
 }
 
 
-def get_oauth_redirect_url(provider: str) -> str:
+def get_oauth_redirect_url(provider: str, platform: str = "web") -> str:
+    """OAuth 인증 URL 생성. platform 값을 state 파라미터로 전달해 콜백에서 리다이렉트 대상을 결정한다."""
     cfg = OAUTH_CONFIGS[provider]
     client_id = getattr(settings, cfg["client_id_key"])
     redirect_uri = getattr(settings, cfg["redirect_uri_key"])
+    state = platform  # "mobile" | "web"
 
     if provider == "google":
         return (
@@ -45,13 +60,41 @@ def get_oauth_redirect_url(provider: str) -> str:
             f"&redirect_uri={redirect_uri}"
             f"&scope={cfg['scopes']}"
             f"&access_type=offline"
+            f"&state={state}"
+        )
+    if provider == "kakao":
+        from urllib.parse import quote
+        return (
+            f"{cfg['auth_url']}?response_type=code"
+            f"&client_id={client_id}"
+            f"&redirect_uri={quote(redirect_uri, safe='')}"
+            f"&scope={quote(cfg['scopes'], safe='')}"
+            f"&state={state}"
         )
     # github
     return (
         f"{cfg['auth_url']}?client_id={client_id}"
         f"&redirect_uri={redirect_uri}"
         f"&scope={cfg['scopes']}"
+        f"&state={state}"
     )
+
+
+async def create_auth_code(user_id: int) -> str:
+    """일회용 인증 코드를 Redis에 저장하고 반환한다 (5분 TTL)."""
+    from app.redis import get_redis
+    redis = await get_redis()
+    code = secrets.token_urlsafe(32)
+    await redis.set(f"{_AUTH_CODE_PREFIX}{code}", str(user_id), ex=_AUTH_CODE_TTL)
+    return code
+
+
+async def consume_auth_code(code: str) -> int | None:
+    """인증 코드를 원자적으로 조회·삭제하고 user_id를 반환한다. 없으면 None."""
+    from app.redis import get_redis
+    redis = await get_redis()
+    user_id_str = await redis.getdel(f"{_AUTH_CODE_PREFIX}{code}")
+    return int(user_id_str) if user_id_str else None
 
 
 async def exchange_code_for_user_info(provider: str, code: str) -> dict:
@@ -92,6 +135,14 @@ def _extract_user_fields(provider: str, info: dict) -> dict:
             "provider_id": info["sub"],
             "nickname": info.get("name") or info.get("email", "").split("@")[0],
             "avatar_url": info.get("picture"),
+        }
+    if provider == "kakao":
+        account = info.get("kakao_account", {})
+        profile = account.get("profile", {})
+        return {
+            "provider_id": str(info["id"]),
+            "nickname": profile.get("nickname") or f"user_{info['id']}",
+            "avatar_url": profile.get("profile_image_url"),
         }
     # github
     return {
