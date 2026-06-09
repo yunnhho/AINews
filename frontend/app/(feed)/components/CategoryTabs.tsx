@@ -27,16 +27,16 @@ export default function CategoryTabs({ active }: Props) {
   }
 
   return (
-    <div className="flex border-b border-gray-200 bg-white overflow-x-auto">
+    <div className="flex gap-6 border-b border-ink overflow-x-auto">
       {TABS.map(({ label, value }) => (
         <button
           key={value}
           onClick={() => handleClick(value)}
           className={clsx(
-            'flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors',
+            'flex-shrink-0 pb-2.5 pt-1 text-[0.9375rem] font-serif font-bold border-b-2 -mb-px transition-colors',
             active === value
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              ? 'border-accent text-ink'
+              : 'border-transparent text-ink-faint hover:text-ink',
           )}
         >
           {label}

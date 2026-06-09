@@ -1,0 +1,22 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - link "AI Pulse" [ref=e3] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e4]: AI/LLM 뉴스 카드
+    - generic [ref=e5]:
+      - link "검색" [ref=e6] [cursor=pointer]:
+        - /url: /search
+        - text: 🔍 검색
+      - link "북마크" [ref=e7] [cursor=pointer]:
+        - /url: /bookmarks
+      - generic [ref=e8]:
+        - generic [ref=e9]: "Y"
+        - generic [ref=e10]: yunnhho
+        - button "로그아웃" [ref=e11] [cursor=pointer]
+  - main [ref=e12]:
+    - generic [ref=e13]:
+      - heading "검색" [level=1] [ref=e14]
+      - generic [ref=e15]:
+        - textbox "카드 제목·요약·문제·아이디어 검색 (한국어 형태소 지원)" [active] [ref=e16]: OpenAI
+        - button "검색" [ref=e17] [cursor=pointer]
+  - alert [ref=e49]

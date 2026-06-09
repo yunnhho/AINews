@@ -1,0 +1,23 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "AI Pulse" [ref=e3] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e4]: AI/LLM 뉴스 카드
+    - button "로그인" [ref=e6] [cursor=pointer]
+  - main [ref=e7]:
+    - article [ref=e9]:
+      - 'button "📰 뉴스 일반 난이도: INTERMEDIATE OpenAI, ''슈퍼 앱'' 개발 계속 진행 중... ''채팅은 끝났다'' OpenAI의 고위 임직원이 ''채팅은 죽었다''고 언급하며, 회사가 단순 챗봇을 넘어 통합 플랫폼인 ''슈퍼 앱'' 개발을 지속하고 있음을 시사했다. 이는 AI 인터페이스의 진화와 사용자 경험의 다각화를 향한 OpenAI의 전략 변화를 보여준다. #openai #super app #ai strategy 6월 8일 ▾" [ref=e10] [cursor=pointer]':
+        - generic [ref=e11]:
+          - generic [ref=e12]: 📰 뉴스
+          - generic [ref=e13]: 일반
+          - 'generic "난이도: INTERMEDIATE" [ref=e14]': ★★★
+        - heading "OpenAI, '슈퍼 앱' 개발 계속 진행 중... '채팅은 끝났다'" [level=2] [ref=e15]
+        - paragraph [ref=e16]: OpenAI의 고위 임직원이 '채팅은 죽었다'고 언급하며, 회사가 단순 챗봇을 넘어 통합 플랫폼인 '슈퍼 앱' 개발을 지속하고 있음을 시사했다. 이는 AI 인터페이스의 진화와 사용자 경험의 다각화를 향한 OpenAI의 전략 변화를 보여준다.
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - generic [ref=e19]: "#openai"
+            - generic [ref=e20]: "#super app"
+            - generic [ref=e21]: "#ai strategy"
+          - generic [ref=e22]: 6월 8일
+        - generic [ref=e24]: ▾
+  - alert [ref=e25]

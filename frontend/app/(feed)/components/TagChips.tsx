@@ -29,7 +29,7 @@ export default function TagChips({ tags, activeSlugs }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-1.5 px-4 py-2 bg-white border-b border-gray-100 overflow-x-auto">
+    <div className="flex items-center gap-3 py-2.5 overflow-x-auto">
       {tags.map((tag) => {
         const isActive = activeSlugs.includes(tag.slug)
         return (
@@ -37,13 +37,13 @@ export default function TagChips({ tags, activeSlugs }: Props) {
             key={tag.slug}
             onClick={() => handleClick(tag.slug)}
             className={clsx(
-              'flex-shrink-0 px-2.5 py-1 rounded-full text-xs transition-colors',
+              'flex-shrink-0 font-mono text-[11px] whitespace-nowrap transition-colors',
               isActive
-                ? 'bg-blue-100 text-blue-700 font-medium'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200',
+                ? 'text-accent underline underline-offset-4 decoration-accent'
+                : 'text-ink-faint hover:text-ink',
             )}
           >
-            #{tag.name}
+            {tag.name}
           </button>
         )
       })}

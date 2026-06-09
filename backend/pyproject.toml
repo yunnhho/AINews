@@ -3,7 +3,6 @@ name = "ai-pulse-backend"
 version = "0.1.0"
 description = "AI Pulse — FastAPI backend"
 authors = ["AI Pulse Team"]
-python = "^3.12"
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -26,8 +25,6 @@ celery = { version = "^5.4.0", extras = ["redis"] }
 feedparser = "^6.0.11"
 sentence-transformers = "^3.3.0"
 scikit-learn = "^1.5.2"
-langchain = "^0.3.12"
-langchain-anthropic = "^0.3.4"
 watchdog = "^6.0.0"
 
 [tool.poetry.group.dev.dependencies]

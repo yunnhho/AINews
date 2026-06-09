@@ -41,7 +41,13 @@ export default async function FeedPage({ searchParams }: { searchParams: SearchP
   const filterKey = `${category}-${cardType}-${tags.sort().join(',')}`
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6">
+      <div className="flex items-baseline gap-3 pt-7 pb-3">
+        <h1 className="font-serif text-[1.75rem] font-extrabold tracking-[-0.02em] text-ink">
+          오늘의 피드
+        </h1>
+        <span className="label-kicker text-ink-faint">Latest</span>
+      </div>
       <Suspense>
         <CategoryTabs active={category} />
         <TypeFilter active={cardType} />

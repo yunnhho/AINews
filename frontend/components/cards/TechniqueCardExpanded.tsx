@@ -11,9 +11,7 @@ interface Props {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-        {title}
-      </h3>
+      <h3 className="label-kicker text-accent mb-2">{title}</h3>
       {children}
     </div>
   )
@@ -21,31 +19,31 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function TechniqueCardExpanded({ card }: Props) {
   return (
-    <div className="px-4 pb-4 pt-3 border-t border-gray-100 space-y-4">
+    <div className="px-5 pb-5 pt-4 rule-t space-y-5 bg-paper/40">
       {/* ① 문제 */}
-      <Section title="문제">
-        <p className="text-sm text-gray-700 leading-relaxed">{card.problem}</p>
+      <Section title="Problem · 문제">
+        <p className="text-[0.875rem] text-ink leading-relaxed">{card.problem}</p>
       </Section>
 
       {/* ② 핵심 아이디어 */}
-      <Section title="핵심 아이디어">
-        <p className="text-sm text-gray-700 leading-relaxed">{card.idea}</p>
+      <Section title="Idea · 핵심 아이디어">
+        <p className="text-[0.875rem] text-ink leading-relaxed">{card.idea}</p>
       </Section>
 
       {/* ③ 코드 (있을 때만) */}
       {card.code_snippet && (
-        <Section title="코드">
+        <Section title="Code · 코드">
           <CodeBlock code={card.code_snippet} />
         </Section>
       )}
 
       {/* ④ 주의사항 */}
       {card.caveats.length > 0 && (
-        <Section title="주의사항">
-          <ul className="space-y-1">
+        <Section title="Caveats · 주의사항">
+          <ul className="space-y-1.5">
             {card.caveats.map((c, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                <span className="mt-1 flex-shrink-0 text-amber-500">⚠</span>
+              <li key={i} className="flex items-start gap-2.5 text-[0.875rem] text-ink leading-relaxed">
+                <span className="mt-2 flex-shrink-0 w-1.5 h-1.5 bg-accent" aria-hidden />
                 {c}
               </li>
             ))}
@@ -55,22 +53,20 @@ export default function TechniqueCardExpanded({ card }: Props) {
 
       {/* 선행지식 */}
       {card.prerequisites && (
-        <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-          <span>📚</span>
-          <span>
-            <span className="font-medium">선행지식:</span> {card.prerequisites}
-          </span>
-        </div>
+        <p className="text-[0.8125rem] text-ink-soft border-l-2 border-rule pl-3 py-0.5">
+          <span className="label-kicker text-ink-faint mr-1.5">선행지식</span>
+          {card.prerequisites}
+        </p>
       )}
 
       {/* 소스 + 원문 링크 */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        <span className="text-xs text-gray-400">{card.source_name}</span>
+      <div className="flex items-center justify-between pt-3 rule-t">
+        <span className="font-mono text-[11px] text-ink-faint">{card.source_name}</span>
         <a
           href={card.source_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+          className="label-kicker text-accent hover:text-accent-ink"
         >
           원문 보기 →
         </a>

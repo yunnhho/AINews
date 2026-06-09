@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     SECRET_KEY: str = "change-me"
     ALLOWED_ORIGINS: str = "http://localhost:3000"
+    # 운영 TrustedHost 허용 호스트 (콤마 구분). 도메인 확정 시 .env에서 설정.
+    ALLOWED_HOSTS: str = "localhost,127.0.0.1,.aipulse.kr"
+    # IP당 분당 요청 상한 (레이트리밋). 무한스크롤 피드를 막지 않도록 넉넉히.
+    RATELIMIT_PER_MINUTE: int = 300
 
     # DB
     DATABASE_URL: str = "postgresql+asyncpg://aipulse:aipulse@localhost:5432/aipulse"
@@ -68,6 +72,10 @@ class Settings(BaseSettings):
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
+
+    @property
+    def allowed_hosts_list(self) -> list[str]:
+        return [h.strip() for h in self.ALLOWED_HOSTS.split(",") if h.strip()]
 
     @property
     def admin_user_ids_list(self) -> list[int]:

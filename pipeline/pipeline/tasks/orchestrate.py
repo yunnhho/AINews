@@ -77,6 +77,7 @@ def _run_pipeline(batch_id: str, scheduled_hour: int = 0) -> dict:
     from pipeline.sources.group_b import collect_group_b1
     from pipeline.sources.group_b2 import collect_group_b2
     from pipeline.sources.group_b3 import collect_group_b3
+    from pipeline.sources.group_b4 import collect_group_b4
     from pipeline.sources.group_c import collect_group_c1
     from pipeline.sources.group_c2 import collect_group_c2
     from pipeline.sources.group_d import collect_group_d1
@@ -125,6 +126,14 @@ def _run_pipeline(batch_id: str, scheduled_hour: int = 0) -> dict:
         failed_count += 1
 
     try:
+        group_b4 = collect_group_b4()
+        collected_by_group["B4"] = len(group_b4)
+    except Exception as exc:
+        logger.error(f"[{batch_id}] Group B-4 수집 실패: {exc}", exc_info=True)
+        group_b4 = []
+        failed_count += 1
+
+    try:
         group_c1 = collect_group_c1()
         collected_by_group["C1"] = len(group_c1)
     except Exception as exc:
@@ -156,7 +165,7 @@ def _run_pipeline(batch_id: str, scheduled_hour: int = 0) -> dict:
         group_d2 = []
         failed_count += 1
 
-    raw_items = group_a + group_b1 + group_b2 + group_b3 + group_c1 + group_c2 + group_d1 + group_d2
+    raw_items = group_a + group_b1 + group_b2 + group_b3 + group_b4 + group_c1 + group_c2 + group_d1 + group_d2
     total_collected = sum(collected_by_group.values())
     logger.info(f"[{batch_id}] 수집 완료: {collected_by_group} 총 {total_collected}건")
 

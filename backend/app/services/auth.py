@@ -105,28 +105,39 @@ async def exchange_code_for_user_info(provider: str, code: str) -> dict:
 
     async with httpx.AsyncClient() as client:
         # 토큰 교환
-        token_resp = await client.post(
-            cfg["token_url"],
-            data={
-                "code": code,
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "redirect_uri": redirect_uri,
-                "grant_type": "authorization_code",
-            },
-            headers={"Accept": "application/json"},
-        )
-        token_resp.raise_for_status()
-        token_data = token_resp.json()
-        access_token = token_data["access_token"]
+        try:
+            token_resp = await client.post(
+                cfg["token_url"],
+                data={
+                    "code": code,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+                headers={"Accept": "application/json"},
+            )
+            token_resp.raise_for_status()
+            token_data = token_resp.json()
+        except httpx.HTTPError as exc:
+            raise UnauthorizedError(f"{provider} 토큰 교환에 실패했습니다.") from exc
+
+        # 일부 제공자(GitHub 등)는 실패 시에도 200에 error 필드를 담아 반환한다.
+        access_token = token_data.get("access_token")
+        if not access_token:
+            err = token_data.get("error_description") or token_data.get("error") or "access_token 없음"
+            raise UnauthorizedError(f"{provider} 인증 실패: {err}")
 
         # 유저 정보 조회
-        user_resp = await client.get(
-            cfg["userinfo_url"],
-            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
-        )
-        user_resp.raise_for_status()
-        return user_resp.json()
+        try:
+            user_resp = await client.get(
+                cfg["userinfo_url"],
+                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+            )
+            user_resp.raise_for_status()
+            return user_resp.json()
+        except httpx.HTTPError as exc:
+            raise UnauthorizedError(f"{provider} 사용자 정보 조회에 실패했습니다.") from exc
 
 
 def _extract_user_fields(provider: str, info: dict) -> dict:

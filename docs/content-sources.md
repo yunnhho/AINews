@@ -55,6 +55,7 @@
 | `topic:rag` | 50개 | 일 1회 | `group_b2.py` |
 | `topic:mcp` | 30개 | 일 1회 | `group_b2.py` |
 | `topic:ai-coding` | 50개 | 일 1회 | `group_b2.py` |
+| `topic:claude-md` | 30개 | 일 1회 | `group_b2.py` |
 
 **어댑터**: `pipeline/adapters/github_trending.py` (GitHubTrendingAdapter)
 
@@ -66,6 +67,17 @@
 | `e2b-dev/awesome-ai-agents` | README.md commit diff 분석 | `group_b3.py` |
 | `aishwaryanr/awesome-generative-ai-guide` | README.md commit diff 분석 | `group_b3.py` |
 | `punkpeye/awesome-mcp-servers` | README.md commit diff 분석 | `group_b3.py` |
+
+### B-4. 큐레이션 CLAUDE.md / 에이전트 설정 파일 (Phase 2) ✅
+
+topic 검색(B-2)이 놓치는, topic 없거나 오래된 핵심 CLAUDE.md를 특정 파일 경로로
+직접 수집한다. 최근 윈도우 미적용 → 수집 단계에서 source_url DB 중복 체크로 1회만 처리.
+
+| 파일 | 추적 방식 | 구현 |
+|---|---|---|
+| `multica-ai/andrej-karpathy-skills` `/CLAUDE.md` | contents raw 직접 fetch | `group_b4.py` |
+
+> 좋은 예시 CLAUDE.md를 발견하면 `group_b4.py`의 `_B4_FILES`에 `{repo, path, branch, name}` 추가.
 
 ---
 

@@ -16,17 +16,17 @@ export default function HeaderAuth() {
           <img
             src={user.avatar_url}
             alt={user.nickname}
-            className="w-7 h-7 rounded-full object-cover"
+            className="w-6 h-6 object-cover border border-ink/20"
           />
         ) : (
-          <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
+          <div className="w-6 h-6 bg-ink flex items-center justify-center text-[11px] font-bold text-paper">
             {user.nickname.slice(0, 1).toUpperCase()}
           </div>
         )}
-        <span className="text-sm text-gray-700 hidden sm:block">{user.nickname}</span>
+        <span className="text-[13px] text-ink hidden sm:block">{user.nickname}</span>
         <button
           onClick={logout}
-          className="text-xs text-gray-400 hover:text-gray-700 transition-colors ml-1"
+          className="label-kicker text-ink-faint hover:text-ink transition-colors ml-1"
         >
           로그아웃
         </button>
@@ -38,7 +38,7 @@ export default function HeaderAuth() {
     <>
       <button
         onClick={() => setShowAuth(true)}
-        className="text-sm font-medium text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        className="label-kicker text-paper bg-ink px-3 py-1.5 hover:bg-accent transition-colors"
       >
         로그인
       </button>

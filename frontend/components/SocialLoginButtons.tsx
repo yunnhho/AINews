@@ -19,6 +19,14 @@ function GitHubIcon() {
   )
 }
 
+function KakaoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="#000000">
+      <path d="M12 3C6.477 3 2 6.463 2 10.735c0 2.764 1.85 5.187 4.63 6.55-.205.74-.74 2.68-.847 3.097-.133.516.19.51.4.37.164-.108 2.6-1.766 3.65-2.48.708.103 1.434.158 2.167.158 5.523 0 10-3.463 10-7.735C22 6.463 17.523 3 12 3z"/>
+    </svg>
+  )
+}
+
 export default function SocialLoginButtons() {
   return (
     <div className="flex flex-col gap-3">
@@ -35,6 +43,13 @@ export default function SocialLoginButtons() {
       >
         <GitHubIcon />
         GitHub로 계속하기
+      </a>
+      <a
+        href={`${API_BASE}/auth/kakao`}
+        className="flex items-center justify-center gap-3 w-full px-4 py-3 bg-[#FEE500] rounded-xl text-sm font-medium text-[#191600] hover:brightness-95 transition-all"
+      >
+        <KakaoIcon />
+        카카오로 계속하기
       </a>
     </div>
   )

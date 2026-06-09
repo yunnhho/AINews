@@ -1,0 +1,96 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - link "AI Pulse" [ref=e3] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e4]: AI/LLM 뉴스 카드
+    - generic [ref=e5]:
+      - link "북마크" [ref=e6] [cursor=pointer]:
+        - /url: /bookmarks
+      - generic [ref=e7]:
+        - generic [ref=e8]: "Y"
+        - generic [ref=e9]: yunnhho
+        - button "로그아웃" [ref=e10] [cursor=pointer]
+  - main [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - button "전체" [ref=e14] [cursor=pointer]
+        - button "프로그래밍" [ref=e15] [cursor=pointer]
+        - button "디자인" [ref=e16] [cursor=pointer]
+        - button "일반" [ref=e17] [cursor=pointer]
+      - generic [ref=e18]:
+        - button "전체" [ref=e19] [cursor=pointer]
+        - button "📰 뉴스" [ref=e20] [cursor=pointer]:
+          - generic [ref=e21]: 📰
+          - text: 뉴스
+        - button "⚙️ 기법" [ref=e22] [cursor=pointer]:
+          - generic [ref=e23]: ⚙️
+          - text: 기법
+      - generic [ref=e24]:
+        - button "#openai" [ref=e25] [cursor=pointer]
+        - button "#super app" [ref=e26] [cursor=pointer]
+        - button "#ai strategy" [ref=e27] [cursor=pointer]
+        - button "#prompt injection" [ref=e28] [cursor=pointer]
+        - button "#ai security" [ref=e29] [cursor=pointer]
+        - button "#chatgpt" [ref=e30] [cursor=pointer]
+        - button "#data protection" [ref=e31] [cursor=pointer]
+      - generic [ref=e32]:
+        - article [ref=e33]:
+          - 'button "📰 뉴스 일반 난이도: INTERMEDIATE OpenAI, ''슈퍼 앱'' 개발 계속 진행 중... ''채팅은 끝났다'' OpenAI의 고위 임직원이 ''채팅은 죽었다''고 언급하며, 회사가 단순 챗봇을 넘어 통합 플랫폼인 ''슈퍼 앱'' 개발을 지속하고 있음을 시사했다. 이는 AI 인터페이스의 진화와 사용자 경험의 다각화를 향한 OpenAI의 전략 변화를 보여준다. #openai #super app #ai strategy 6월 8일 ▾" [expanded] [active] [ref=e34] [cursor=pointer]':
+            - generic [ref=e35]:
+              - generic [ref=e36]: 📰 뉴스
+              - generic [ref=e37]: 일반
+              - 'generic "난이도: INTERMEDIATE" [ref=e38]': ★★★
+            - heading "OpenAI, '슈퍼 앱' 개발 계속 진행 중... '채팅은 끝났다'" [level=2] [ref=e39]
+            - paragraph [ref=e40]: OpenAI의 고위 임직원이 '채팅은 죽었다'고 언급하며, 회사가 단순 챗봇을 넘어 통합 플랫폼인 '슈퍼 앱' 개발을 지속하고 있음을 시사했다. 이는 AI 인터페이스의 진화와 사용자 경험의 다각화를 향한 OpenAI의 전략 변화를 보여준다.
+            - generic [ref=e41]:
+              - generic [ref=e42]:
+                - generic [ref=e43]: "#openai"
+                - generic [ref=e44]: "#super app"
+                - generic [ref=e45]: "#ai strategy"
+              - generic [ref=e46]: 6월 8일
+            - generic [ref=e48]: ▾
+          - generic [ref=e69]:
+            - generic [ref=e70]:
+              - heading "핵심 포인트" [level=3] [ref=e71]
+              - list [ref=e72]:
+                - listitem [ref=e73]:
+                  - generic [ref=e74]: "1"
+                  - text: OpenAI 임직원이 채팅 기반 인터페이스의 한계를 지적
+                - listitem [ref=e75]:
+                  - generic [ref=e76]: "2"
+                  - text: 단일 기능 앱에서 벗어나 통합 슈퍼 앱으로의 전환 추진
+                - listitem [ref=e77]:
+                  - generic [ref=e78]: "3"
+                  - text: AI 플랫폼의 차세대 진화 방향을 모색 중
+            - generic [ref=e79]:
+              - generic [ref=e80]: TechCrunch AI
+              - link "원문 보기 →" [ref=e81] [cursor=pointer]:
+                - /url: https://techcrunch.com/2026/06/07/openai-is-still-working-on-that-super-app/
+            - generic [ref=e82]:
+              - button "좋아요 취소" [ref=e83] [cursor=pointer]: ❤️ 1
+              - button "북마크 취소" [ref=e84] [cursor=pointer]: 🔖 1
+              - button "공유" [ref=e85] [cursor=pointer]: 🔗
+        - article [ref=e49]:
+          - 'button "📰 뉴스 일반 난이도: INTERMEDIATE OpenAI, 프롬프트 인젝션 공격으로부터 민감한 데이터 보호하는 ''락다운 모드'' 공개 OpenAI가 ChatGPT의 프롬프트 인젝션 공격으로부터 민감한 데이터를 보호하기 위해 락다운 모드를 출시했습니다. 락다운 모드가 완벽한 방어책은 아니지만, 민감한 정보 유출 가능성을 크게 줄이는 것을 목표로 합니다. #prompt injection #ai security #chatgpt 6월 7일 ▾" [ref=e50] [cursor=pointer]':
+            - generic [ref=e51]:
+              - generic [ref=e52]: 📰 뉴스
+              - generic [ref=e53]: 일반
+              - 'generic "난이도: INTERMEDIATE" [ref=e54]': ★★★
+            - heading "OpenAI, 프롬프트 인젝션 공격으로부터 민감한 데이터 보호하는 '락다운 모드' 공개" [level=2] [ref=e55]
+            - paragraph [ref=e56]: OpenAI가 ChatGPT의 프롬프트 인젝션 공격으로부터 민감한 데이터를 보호하기 위해 락다운 모드를 출시했습니다. 락다운 모드가 완벽한 방어책은 아니지만, 민감한 정보 유출 가능성을 크게 줄이는 것을 목표로 합니다.
+            - generic [ref=e57]:
+              - generic [ref=e58]:
+                - generic [ref=e59]: "#prompt injection"
+                - generic [ref=e60]: "#ai security"
+                - generic [ref=e61]: "#chatgpt"
+              - generic [ref=e62]: 6월 7일
+            - generic [ref=e64]: ▾
+      - paragraph [ref=e66]: 모든 카드를 불러왔습니다.
+  - status [ref=e86]:
+    - generic [ref=e87]:
+      - img [ref=e89]
+      - generic [ref=e91]:
+        - text: Static route
+        - button "Hide static indicator" [ref=e92] [cursor=pointer]:
+          - img [ref=e93]
+  - alert [ref=e67]

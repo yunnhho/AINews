@@ -1,0 +1,75 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "AI Pulse 매일의 AI 큐레이션" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e5]: AI Pulse
+        - generic [ref=e6]: 매일의 AI 큐레이션
+      - navigation [ref=e7]:
+        - link "추천" [ref=e8] [cursor=pointer]:
+          - /url: /recommended
+        - link "검색" [ref=e9] [cursor=pointer]:
+          - /url: /search
+        - link "북마크" [ref=e10] [cursor=pointer]:
+          - /url: /bookmarks
+        - generic [ref=e12]:
+          - generic [ref=e13]: "Y"
+          - generic [ref=e14]: yunnhho
+          - button "로그아웃" [ref=e15] [cursor=pointer]
+  - main [ref=e16]:
+    - article [ref=e18]:
+      - 'button "Technique 프로그래밍 난이도: 중급 RAG 청크 크기 최적화 — 시맨틱 청킹 패턴 고정 길이(예: 512 토큰) 청킹은 문장·문단 중간을 잘라 검색 시 맥락이 깨지고 관련 청크 누락이 발생한다. 6월 8일 CODE ▾" [expanded] [active] [ref=e19] [cursor=pointer]':
+        - generic [ref=e20]:
+          - generic [ref=e21]: Technique
+          - generic [ref=e24]: 프로그래밍
+          - 'generic "난이도: 중급" [ref=e26]': 중급
+        - heading "RAG 청크 크기 최적화 — 시맨틱 청킹 패턴" [level=2] [ref=e31]
+        - paragraph [ref=e32]: "고정 길이(예: 512 토큰) 청킹은 문장·문단 중간을 잘라 검색 시 맥락이 깨지고 관련 청크 누락이 발생한다."
+        - generic [ref=e34]: 6월 8일
+        - generic [ref=e35]: CODE
+        - generic [ref=e37]: ▾
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - heading "Problem · 문제" [level=3] [ref=e52]
+          - paragraph [ref=e53]: "고정 길이(예: 512 토큰) 청킹은 문장·문단 중간을 잘라 검색 시 맥락이 깨지고 관련 청크 누락이 발생한다."
+        - generic [ref=e54]:
+          - heading "Idea · 핵심 아이디어" [level=3] [ref=e55]
+          - paragraph [ref=e56]: 임베딩 유사도로 인접 문장 간 의미 경계를 탐지해, 의미가 이어지는 구간을 한 청크로 묶는다. 경계에서만 분할하므로 맥락 보존율이 높아진다.
+        - generic [ref=e57]:
+          - heading "Code · 코드" [level=3] [ref=e58]
+          - code [ref=e61]:
+            - generic [ref=e62]: "def semantic_chunk(sentences, threshold=0.7):"
+            - generic [ref=e63]: chunks, cur = [], [sentences[0]]
+            - generic [ref=e64]: "for prev, nxt in zip(sentences, sentences[1:]):"
+            - generic [ref=e65]: "if cosine(embed(prev), embed(nxt)) < threshold:"
+            - generic [ref=e66]: chunks.append(" ".join(cur)); cur = []
+            - generic [ref=e67]: cur.append(nxt)
+            - generic [ref=e68]: chunks.append(" ".join(cur))
+            - generic [ref=e69]: return chunks
+        - generic [ref=e70]:
+          - heading "Caveats · 주의사항" [level=3] [ref=e71]
+          - list [ref=e72]:
+            - listitem [ref=e73]: 임베딩 호출 비용이 청킹 단계에서 추가 발생
+            - listitem [ref=e75]: 문서 길이가 매우 길면 사전 분할 필요
+            - listitem [ref=e77]: threshold 튜닝이 도메인마다 다름
+        - paragraph [ref=e79]: 선행지식sentence-transformers 기본 사용법, 코사인 유사도 개념
+        - generic [ref=e80]:
+          - generic [ref=e81]: Example Eng Blog
+          - link "원문 보기 →" [ref=e82] [cursor=pointer]:
+            - /url: https://example.com/blog/semantic-chunking-rag
+        - generic [ref=e83]:
+          - button "좋아요" [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: ♡
+            - generic [ref=e86]: "0"
+          - button "북마크" [ref=e87] [cursor=pointer]:
+            - generic [ref=e88]: □
+            - generic [ref=e89]: 북마크 0
+          - button "공유" [ref=e90] [cursor=pointer]
+  - status [ref=e39]:
+    - generic [ref=e40]:
+      - img [ref=e42]
+      - generic [ref=e44]:
+        - text: Static route
+        - button "Hide static indicator" [ref=e45] [cursor=pointer]:
+          - img [ref=e46]
+  - alert [ref=e38]

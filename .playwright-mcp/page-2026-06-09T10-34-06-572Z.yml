@@ -1,0 +1,48 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "AI Pulse 매일의 AI 큐레이션" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e5]: AI Pulse
+        - generic [ref=e6]: 매일의 AI 큐레이션
+      - navigation [ref=e7]:
+        - link "추천" [ref=e8] [cursor=pointer]:
+          - /url: /recommended
+        - link "검색" [ref=e9] [cursor=pointer]:
+          - /url: /search
+        - link "북마크" [ref=e10] [cursor=pointer]:
+          - /url: /bookmarks
+        - generic [ref=e12]:
+          - generic [ref=e13]: "Y"
+          - generic [ref=e14]: yunnhho
+          - button "로그아웃" [ref=e15] [cursor=pointer]
+  - main [ref=e16]:
+    - generic [ref=e17]:
+      - heading "검색" [level=1] [ref=e18]
+      - generic [ref=e19]:
+        - textbox "제목·요약·태그 검색 — 한국어·English 지원" [active] [ref=e20]: 프롬프트 인젝션
+        - button "검색" [ref=e21] [cursor=pointer]
+      - paragraph [ref=e24]: 1개 결과
+      - article [ref=e26]:
+        - 'button "News 일반 난이도: 중급 OpenAI, 프롬프트 인젝션 공격으로부터 민감한 데이터 보호하는 ''락다운 모드'' 공개 OpenAI가 ChatGPT의 프롬프트 인젝션 공격으로부터 민감한 데이터를 보호하기 위해 락다운 모드를 출시했습니다. 락다운 모드가 완벽한 방어책은 아니지만, 민감한 정보 유출 가능성을 크게 줄이는 것을 목표로 합니다. prompt injection ai security chatgpt 6월 7일 ▾" [ref=e27] [cursor=pointer]':
+          - generic [ref=e28]:
+            - generic [ref=e29]: News
+            - generic [ref=e32]: 일반
+            - 'generic "난이도: 중급" [ref=e34]': 중급
+          - heading "OpenAI, 프롬프트 인젝션 공격으로부터 민감한 데이터 보호하는 '락다운 모드' 공개" [level=2] [ref=e39]
+          - paragraph [ref=e40]: OpenAI가 ChatGPT의 프롬프트 인젝션 공격으로부터 민감한 데이터를 보호하기 위해 락다운 모드를 출시했습니다. 락다운 모드가 완벽한 방어책은 아니지만, 민감한 정보 유출 가능성을 크게 줄이는 것을 목표로 합니다.
+          - generic [ref=e41]:
+            - generic [ref=e42]:
+              - generic [ref=e43]: prompt injection
+              - generic [ref=e44]: ai security
+              - generic [ref=e45]: chatgpt
+            - generic [ref=e46]: 6월 7일
+          - generic [ref=e48]: ▾
+  - status [ref=e49]:
+    - generic [ref=e50]:
+      - img [ref=e52]
+      - generic [ref=e54]:
+        - text: Static route
+        - button "Hide static indicator" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+  - alert [ref=e23]

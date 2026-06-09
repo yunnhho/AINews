@@ -1,4 +1,5 @@
 import asyncio
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -10,6 +11,11 @@ config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# 컨테이너/로컬 환경에 맞게 DATABASE_URL 환경변수를 우선 사용 (alembic.ini는 폴백)
+_db_url = os.getenv("DATABASE_URL")
+if _db_url:
+    config.set_main_option("sqlalchemy.url", _db_url)
 
 # 모든 모델 임포트하여 메타데이터 등록
 from app.models import Base  # noqa: E402

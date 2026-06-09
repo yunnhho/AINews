@@ -4,9 +4,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 
 const TYPES = [
-  { label: '전체', value: 'all', icon: null },
-  { label: '뉴스', value: 'NEWS', icon: '📰' },
-  { label: '기법', value: 'TECHNIQUE', icon: '⚙️' },
+  { label: '전체', value: 'all' },
+  { label: '뉴스', value: 'NEWS' },
+  { label: '기법', value: 'TECHNIQUE' },
 ] as const
 
 interface Props {
@@ -26,19 +26,18 @@ export default function TypeFilter({ active }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-1 px-4 py-2 bg-white border-b border-gray-100">
-      {TYPES.map(({ label, value, icon }) => (
+    <div className="flex items-center gap-2 px-1 py-2.5">
+      {TYPES.map(({ label, value }) => (
         <button
           key={value}
           onClick={() => handleClick(value)}
           className={clsx(
-            'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+            'label-kicker px-2.5 py-1 border transition-colors',
             active === value
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              ? 'bg-ink text-paper border-ink'
+              : 'border-rule text-ink-soft hover:border-ink',
           )}
         >
-          {icon && <span>{icon}</span>}
           {label}
         </button>
       ))}

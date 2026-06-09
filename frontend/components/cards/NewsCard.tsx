@@ -19,38 +19,39 @@ export default function NewsCard({ card }: Props) {
   })
 
   return (
-    <article className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+    <article className="group bg-[#fbf9f3] border border-rule hover:border-ink/30 transition-colors">
       {/* 클릭 가능한 요약 영역 */}
       <button
-        className="w-full text-left px-4 pt-4 pb-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        className="w-full text-left px-5 pt-4 pb-3.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
       >
         {/* 뱃지 행 */}
-        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+        <div className="flex items-center gap-3 mb-2.5 flex-wrap">
           <TypeBadge type="NEWS" />
+          <span className="w-px h-3 bg-rule" aria-hidden />
           <CategoryBadge category={card.category} />
           <DifficultyBadge difficulty={card.difficulty} />
         </div>
 
         {/* 제목 */}
-        <h2 className="text-sm font-semibold text-gray-900 leading-snug mb-1.5">
+        <h2 className="font-serif text-[1.0625rem] font-bold text-ink leading-snug mb-1.5 tracking-[-0.01em]">
           {card.title}
         </h2>
 
         {/* 요약 2줄 clamp */}
-        <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{card.summary}</p>
+        <p className="text-[0.8125rem] text-ink-soft line-clamp-2 leading-relaxed">{card.summary}</p>
 
         {/* 태그 + 날짜 */}
-        <div className="flex items-center justify-between mt-2.5">
-          <div className="flex gap-1.5 flex-wrap min-w-0">
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex gap-2.5 flex-wrap min-w-0">
             {card.tags.slice(0, 3).map((tag) => (
-              <span key={tag.slug} className="text-xs text-gray-400 truncate">
-                #{tag.name}
+              <span key={tag.slug} className="font-mono text-[11px] text-ink-faint truncate">
+                {tag.name}
               </span>
             ))}
           </div>
-          <span className="text-xs text-gray-400 ml-2 flex-shrink-0">{dateStr}</span>
+          <span className="font-mono text-[11px] text-ink-faint ml-2 flex-shrink-0">{dateStr}</span>
         </div>
 
         {/* 펼침 힌트 */}
@@ -58,7 +59,7 @@ export default function NewsCard({ card }: Props) {
           <motion.span
             animate={{ rotate: expanded ? 180 : 0 }}
             transition={{ duration: 0.2 }}
-            className="text-gray-300 text-xs leading-none"
+            className="text-ink-faint text-xs leading-none"
           >
             ▾
           </motion.span>

@@ -19,6 +19,7 @@ _B2_TOPICS: list[tuple[str, int]] = [
     ("rag", 50),
     ("mcp", 30),
     ("ai-coding", 50),
+    ("claude-md", 30),  # CLAUDE.md / 에이전트 설정 파일 관련 리포
 ]
 
 

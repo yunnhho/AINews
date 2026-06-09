@@ -26,13 +26,13 @@ export default function AuthModal({ open, onClose }: Props) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-            className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl px-6 pt-4 pb-10 max-w-lg mx-auto shadow-2xl"
+            className="fixed bottom-0 inset-x-0 z-50 bg-paper border-t-2 border-ink px-6 pt-5 pb-10 max-w-lg mx-auto"
           >
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <h2 className="text-lg font-semibold text-gray-900 text-center mb-1.5">
+            <div className="label-kicker text-accent text-center mb-3">Members Only</div>
+            <h2 className="font-serif text-2xl font-extrabold text-ink text-center mb-1.5 tracking-[-0.01em]">
               로그인이 필요합니다
             </h2>
-            <p className="text-sm text-gray-500 text-center mb-6">
+            <p className="text-sm text-ink-soft text-center mb-6">
               좋아요·북마크는 로그인 후 이용할 수 있어요.
             </p>
             <SocialLoginButtons />

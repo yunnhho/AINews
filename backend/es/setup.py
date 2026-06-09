@@ -78,7 +78,8 @@ async def main() -> None:
         async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
-            result = await session.execute(select(Card))
+            # 발행된(is_published) 카드만 색인 — 번역 검토 보류 초안은 검색 노출 금지
+            result = await session.execute(select(Card).where(Card.is_published.is_(True)))
             cards = result.scalars().all()
 
         await engine.dispose()

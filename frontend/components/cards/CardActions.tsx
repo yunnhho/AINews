@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '@/stores/auth'
-import { likeCard, unlikeCard, bookmarkCard, unbookmarkCard } from '@/lib/api'
+import { getCard, likeCard, unlikeCard, bookmarkCard, unbookmarkCard, ApiError } from '@/lib/api'
 import type { Card } from '@/lib/types'
 import AuthModal from '@/components/AuthModal'
 
@@ -31,6 +31,26 @@ export default function CardActions({ card }: Props) {
   const [bookmarkCount, setBookmarkCount] = useState(card.bookmark_count)
   const [showAuth, setShowAuth] = useState(false)
 
+  // SSR 데이터는 토큰이 없어 is_liked/is_bookmarked가 false다.
+  // 로그인 상태면 서버의 실제 좋아요/북마크 상태로 동기화한다.
+  // (CardActions는 카드 확장 시 또는 상세 페이지에서만 마운트되므로 요청 비용이 작다.)
+  useEffect(() => {
+    if (!token) return
+    let cancelled = false
+    getCard(card.id, token)
+      .then((fresh) => {
+        if (cancelled) return
+        setIsLiked(fresh.is_liked)
+        setLikeCount(fresh.like_count)
+        setIsBookmarked(fresh.is_bookmarked)
+        setBookmarkCount(fresh.bookmark_count)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [token, card.id])
+
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY
     if (!key) return
@@ -53,9 +73,11 @@ export default function CardActions({ card }: Props) {
     try {
       if (isLiked) await unlikeCard(card.id, token)
       else await likeCard(card.id, token)
-    } catch {
+    } catch (e) {
       setIsLiked(snapshot.isLiked)
       setLikeCount(snapshot.likeCount)
+      // 토큰 만료(401)면 스토어가 비워졌으므로 재로그인을 유도한다.
+      if (e instanceof ApiError && e.status === 401) setShowAuth(true)
     }
   }
 
@@ -67,9 +89,11 @@ export default function CardActions({ card }: Props) {
     try {
       if (isBookmarked) await unbookmarkCard(card.id, token)
       else await bookmarkCard(card.id, token)
-    } catch {
+    } catch (e) {
       setIsBookmarked(snapshot.isBookmarked)
       setBookmarkCount(snapshot.bookmarkCount)
+      // 토큰 만료(401)면 스토어가 비워졌으므로 재로그인을 유도한다.
+      if (e instanceof ApiError && e.status === 401) setShowAuth(true)
     }
   }
 
@@ -97,41 +121,43 @@ export default function CardActions({ card }: Props) {
 
   return (
     <>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-5">
         <button
           onClick={toggleLike}
           className={clsx(
-            'flex items-center gap-1 text-xs transition-colors',
-            isLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400',
+            'flex items-center gap-1.5 transition-colors',
+            isLiked ? 'text-accent' : 'text-ink-faint hover:text-accent',
           )}
           aria-label={isLiked ? '좋아요 취소' : '좋아요'}
         >
-          {isLiked ? '❤️' : '🤍'} {likeCount}
+          <span className="text-sm leading-none">{isLiked ? '♥' : '♡'}</span>
+          <span className="font-mono text-[11px]">{likeCount}</span>
         </button>
         <button
           onClick={toggleBookmark}
           className={clsx(
-            'flex items-center gap-1 text-xs transition-colors',
-            isBookmarked ? 'text-blue-500' : 'text-gray-400 hover:text-blue-400',
+            'flex items-center gap-1.5 transition-colors',
+            isBookmarked ? 'text-ink' : 'text-ink-faint hover:text-ink',
           )}
           aria-label={isBookmarked ? '북마크 취소' : '북마크'}
         >
-          {isBookmarked ? '🔖' : '📄'} {bookmarkCount}
+          <span className="text-[11px] leading-none">{isBookmarked ? '■' : '□'}</span>
+          <span className="font-mono text-[11px]">북마크 {bookmarkCount}</span>
         </button>
         <button
           onClick={handleShare}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          className="label-kicker text-ink-faint hover:text-ink transition-colors"
           aria-label="공유"
         >
-          🔗
+          공유
         </button>
         {process.env.NEXT_PUBLIC_KAKAO_JS_KEY && (
           <button
             onClick={handleKakaoShare}
-            className="text-xs text-gray-400 hover:text-yellow-500 transition-colors"
+            className="label-kicker text-ink-faint hover:text-accent transition-colors"
             aria-label="카카오톡 공유"
           >
-            💬
+            카카오
           </button>
         )}
       </div>

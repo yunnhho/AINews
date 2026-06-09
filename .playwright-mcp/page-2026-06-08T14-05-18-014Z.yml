@@ -1,0 +1,8 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "AI Pulse" [ref=e3] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e4]: AI/LLM 뉴스 카드
+    - button "로그인" [ref=e6] [cursor=pointer]
+  - main [ref=e7]
+  - alert [ref=e8]

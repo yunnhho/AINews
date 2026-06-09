@@ -20,7 +20,14 @@ async def _get_user_from_token(
         return None
 
     token = authorization.removeprefix("Bearer ")
-    user_id = decode_token(token, expected_type="access")
+    # 선택 인증(게스트 허용) 경로에서 만료·위조 토큰은 401이 아니라 게스트로 처리한다.
+    # (그렇지 않으면 토큰 만료 시 피드 등 공개 엔드포인트 전체가 401로 깨진다.)
+    try:
+        user_id = decode_token(token, expected_type="access")
+    except UnauthorizedError:
+        if required:
+            raise
+        return None
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()

@@ -1,0 +1,164 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "AI Pulse 매일의 AI 큐레이션" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e5]: AI Pulse
+        - generic [ref=e6]: 매일의 AI 큐레이션
+      - navigation [ref=e7]:
+        - link "추천" [ref=e8] [cursor=pointer]:
+          - /url: /recommended
+        - link "검색" [ref=e9] [cursor=pointer]:
+          - /url: /search
+        - link "북마크" [ref=e10] [cursor=pointer]:
+          - /url: /bookmarks
+        - button "로그인" [ref=e12] [cursor=pointer]
+  - main [ref=e13]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - heading "오늘의 피드" [level=1] [ref=e16]
+        - generic [ref=e17]: Latest
+      - generic [ref=e18]:
+        - button "전체" [ref=e19] [cursor=pointer]
+        - button "프로그래밍" [ref=e20] [cursor=pointer]
+        - button "디자인" [ref=e21] [cursor=pointer]
+        - button "일반" [ref=e22] [cursor=pointer]
+      - generic [ref=e23]:
+        - button "전체" [ref=e24] [cursor=pointer]
+        - button "뉴스" [ref=e25] [cursor=pointer]
+        - button "기법" [ref=e26] [cursor=pointer]
+      - generic [ref=e27]:
+        - button "ai pricing" [ref=e28] [cursor=pointer]
+        - button "token economy" [ref=e29] [cursor=pointer]
+        - button "ipo" [ref=e30] [cursor=pointer]
+        - button "generative ai" [ref=e31] [cursor=pointer]
+        - button "openai" [ref=e32] [cursor=pointer]
+        - button "super app" [ref=e33] [cursor=pointer]
+        - button "ai strategy" [ref=e34] [cursor=pointer]
+        - button "prompt injection" [ref=e35] [cursor=pointer]
+        - button "ai security" [ref=e36] [cursor=pointer]
+        - button "chatgpt" [ref=e37] [cursor=pointer]
+        - button "data protection" [ref=e38] [cursor=pointer]
+        - button "llm coding" [ref=e39] [cursor=pointer]
+        - button "code quality" [ref=e40] [cursor=pointer]
+        - button "behavioral guidelines" [ref=e41] [cursor=pointer]
+        - button "prompt engineering" [ref=e42] [cursor=pointer]
+      - generic [ref=e43]:
+        - article [ref=e44]:
+          - 'button "Technique 프로그래밍 난이도: 중급 RAG 청크 크기 최적화 — 시맨틱 청킹 패턴 고정 길이(예: 512 토큰) 청킹은 문장·문단 중간을 잘라 검색 시 맥락이 깨지고 관련 청크 누락이 발생한다. 6월 8일 CODE ▾" [expanded] [active] [ref=e45] [cursor=pointer]':
+            - generic [ref=e46]:
+              - generic [ref=e47]: Technique
+              - generic [ref=e50]: 프로그래밍
+              - 'generic "난이도: 중급" [ref=e52]': 중급
+            - heading "RAG 청크 크기 최적화 — 시맨틱 청킹 패턴" [level=2] [ref=e57]
+            - paragraph [ref=e58]: "고정 길이(예: 512 토큰) 청킹은 문장·문단 중간을 잘라 검색 시 맥락이 깨지고 관련 청크 누락이 발생한다."
+            - generic [ref=e60]: 6월 8일
+            - generic [ref=e61]: CODE
+            - generic [ref=e63]: ▾
+          - generic [ref=e171]:
+            - generic [ref=e172]:
+              - heading "Problem · 문제" [level=3] [ref=e173]
+              - paragraph [ref=e174]: "고정 길이(예: 512 토큰) 청킹은 문장·문단 중간을 잘라 검색 시 맥락이 깨지고 관련 청크 누락이 발생한다."
+            - generic [ref=e175]:
+              - heading "Idea · 핵심 아이디어" [level=3] [ref=e176]
+              - paragraph [ref=e177]: 임베딩 유사도로 인접 문장 간 의미 경계를 탐지해, 의미가 이어지는 구간을 한 청크로 묶는다. 경계에서만 분할하므로 맥락 보존율이 높아진다.
+            - generic [ref=e178]:
+              - heading "Code · 코드" [level=3] [ref=e179]
+              - code [ref=e182]:
+                - generic [ref=e183]: "def semantic_chunk(sentences, threshold=0.7):"
+                - generic [ref=e184]: chunks, cur = [], [sentences[0]]
+                - generic [ref=e185]: "for prev, nxt in zip(sentences, sentences[1:]):"
+                - generic [ref=e186]: "if cosine(embed(prev), embed(nxt)) < threshold:"
+                - generic [ref=e187]: chunks.append(" ".join(cur)); cur = []
+                - generic [ref=e188]: cur.append(nxt)
+                - generic [ref=e189]: chunks.append(" ".join(cur))
+                - generic [ref=e190]: return chunks
+            - generic [ref=e191]:
+              - heading "Caveats · 주의사항" [level=3] [ref=e192]
+              - list [ref=e193]:
+                - listitem [ref=e194]: 임베딩 호출 비용이 청킹 단계에서 추가 발생
+                - listitem [ref=e196]: 문서 길이가 매우 길면 사전 분할 필요
+                - listitem [ref=e198]: threshold 튜닝이 도메인마다 다름
+            - paragraph [ref=e200]: 선행지식sentence-transformers 기본 사용법, 코사인 유사도 개념
+            - generic [ref=e201]:
+              - generic [ref=e202]: Example Eng Blog
+              - link "원문 보기 →" [ref=e203] [cursor=pointer]:
+                - /url: https://example.com/blog/semantic-chunking-rag
+            - generic [ref=e204]:
+              - button "좋아요" [ref=e205] [cursor=pointer]:
+                - generic [ref=e206]: ♡
+                - generic [ref=e207]: "0"
+              - button "북마크" [ref=e208] [cursor=pointer]:
+                - generic [ref=e209]: □
+                - generic [ref=e210]: 북마크 0
+              - button "공유" [ref=e211] [cursor=pointer]
+        - article [ref=e64]:
+          - 'button "News 일반 난이도: 중급 토큰포칼립스가 시작되는가? AI 대기업의 상장으로 인한 가격 인상 우려 주요 AI 기업들의 상장 계획에 따라 토큰 가격이 대폭 인상될 가능성이 높아지고 있습니다. 이는 AI 서비스 이용료 증가로 이어질 전망이며, 개발자와 사용자들에게 상당한 영향을 미칠 수 있습니다. ai pricing token economy ipo 6월 8일 ▾" [ref=e65] [cursor=pointer]':
+            - generic [ref=e66]:
+              - generic [ref=e67]: News
+              - generic [ref=e70]: 일반
+              - 'generic "난이도: 중급" [ref=e72]': 중급
+            - heading "토큰포칼립스가 시작되는가? AI 대기업의 상장으로 인한 가격 인상 우려" [level=2] [ref=e77]
+            - paragraph [ref=e78]: 주요 AI 기업들의 상장 계획에 따라 토큰 가격이 대폭 인상될 가능성이 높아지고 있습니다. 이는 AI 서비스 이용료 증가로 이어질 전망이며, 개발자와 사용자들에게 상당한 영향을 미칠 수 있습니다.
+            - generic [ref=e79]:
+              - generic [ref=e80]:
+                - generic [ref=e81]: ai pricing
+                - generic [ref=e82]: token economy
+                - generic [ref=e83]: ipo
+              - generic [ref=e84]: 6월 8일
+            - generic [ref=e86]: ▾
+        - article [ref=e87]:
+          - 'button "News 일반 난이도: 중급 OpenAI, ''슈퍼 앱'' 개발 계속 진행 중... ''채팅은 끝났다'' OpenAI의 고위 임직원이 ''채팅은 죽었다''고 언급하며, 회사가 단순 챗봇을 넘어 통합 플랫폼인 ''슈퍼 앱'' 개발을 지속하고 있음을 시사했다. 이는 AI 인터페이스의 진화와 사용자 경험의 다각화를 향한 OpenAI의 전략 변화를 보여준다. openai super app ai strategy 6월 8일 ▾" [ref=e88] [cursor=pointer]':
+            - generic [ref=e89]:
+              - generic [ref=e90]: News
+              - generic [ref=e93]: 일반
+              - 'generic "난이도: 중급" [ref=e95]': 중급
+            - heading "OpenAI, '슈퍼 앱' 개발 계속 진행 중... '채팅은 끝났다'" [level=2] [ref=e100]
+            - paragraph [ref=e101]: OpenAI의 고위 임직원이 '채팅은 죽었다'고 언급하며, 회사가 단순 챗봇을 넘어 통합 플랫폼인 '슈퍼 앱' 개발을 지속하고 있음을 시사했다. 이는 AI 인터페이스의 진화와 사용자 경험의 다각화를 향한 OpenAI의 전략 변화를 보여준다.
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e104]: openai
+                - generic [ref=e105]: super app
+                - generic [ref=e106]: ai strategy
+              - generic [ref=e107]: 6월 8일
+            - generic [ref=e109]: ▾
+        - article [ref=e110]:
+          - 'button "News 일반 난이도: 중급 OpenAI, 프롬프트 인젝션 공격으로부터 민감한 데이터 보호하는 ''락다운 모드'' 공개 OpenAI가 ChatGPT의 프롬프트 인젝션 공격으로부터 민감한 데이터를 보호하기 위해 락다운 모드를 출시했습니다. 락다운 모드가 완벽한 방어책은 아니지만, 민감한 정보 유출 가능성을 크게 줄이는 것을 목표로 합니다. prompt injection ai security chatgpt 6월 7일 ▾" [ref=e111] [cursor=pointer]':
+            - generic [ref=e112]:
+              - generic [ref=e113]: News
+              - generic [ref=e116]: 일반
+              - 'generic "난이도: 중급" [ref=e118]': 중급
+            - heading "OpenAI, 프롬프트 인젝션 공격으로부터 민감한 데이터 보호하는 '락다운 모드' 공개" [level=2] [ref=e123]
+            - paragraph [ref=e124]: OpenAI가 ChatGPT의 프롬프트 인젝션 공격으로부터 민감한 데이터를 보호하기 위해 락다운 모드를 출시했습니다. 락다운 모드가 완벽한 방어책은 아니지만, 민감한 정보 유출 가능성을 크게 줄이는 것을 목표로 합니다.
+            - generic [ref=e125]:
+              - generic [ref=e126]:
+                - generic [ref=e127]: prompt injection
+                - generic [ref=e128]: ai security
+                - generic [ref=e129]: chatgpt
+              - generic [ref=e130]: 6월 7일
+            - generic [ref=e132]: ▾
+        - article [ref=e133]:
+          - 'button "Technique 프로그래밍 난이도: 입문 Claude.md: LLM 코딩 실수 방지 가이드라인 대규모 언어 모델이 코드를 작성할 때 가정을 숨기고, 요구사항을 초과하는 기능을 추가하고, 범위 외의 코드를 수정하는 문제가 발생한다. llm coding code quality behavioral guidelines 1월 27일 CODE ▾" [ref=e134] [cursor=pointer]':
+            - generic [ref=e135]:
+              - generic [ref=e136]: Technique
+              - generic [ref=e139]: 프로그래밍
+              - 'generic "난이도: 입문" [ref=e141]': 입문
+            - 'heading "Claude.md: LLM 코딩 실수 방지 가이드라인" [level=2] [ref=e146]'
+            - paragraph [ref=e147]: 대규모 언어 모델이 코드를 작성할 때 가정을 숨기고, 요구사항을 초과하는 기능을 추가하고, 범위 외의 코드를 수정하는 문제가 발생한다.
+            - generic [ref=e148]:
+              - generic [ref=e149]:
+                - generic [ref=e150]: llm coding
+                - generic [ref=e151]: code quality
+                - generic [ref=e152]: behavioral guidelines
+              - generic [ref=e153]: 1월 27일
+            - generic [ref=e154]: CODE
+            - generic [ref=e156]: ▾
+      - paragraph [ref=e158]: 모든 카드를 불러왔습니다.
+  - status [ref=e212]:
+    - generic [ref=e213]:
+      - img [ref=e215]
+      - generic [ref=e217]:
+        - text: Static route
+        - button "Hide static indicator" [ref=e218] [cursor=pointer]:
+          - img [ref=e219]
+  - alert [ref=e159]

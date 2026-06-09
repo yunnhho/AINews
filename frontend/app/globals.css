@@ -3,14 +3,66 @@
 @tailwind utilities;
 
 :root {
-  --header-height: 56px;
+  --header-height: 60px;
+
+  /* Editorial newsprint palette */
+  --paper: #f4f1ea;
+  --paper-2: #efebe0;
+  --ink: #1c1a17;
+  --ink-soft: #5b554b;
+  --ink-faint: #8c857a;
+  --rule: #ddd5c5;
+  --accent: #b23a2e; /* vermillion */
+  --accent-ink: #8f2c22;
+
+  /* Pretendard 우선 — 한국 IT 독자에게 익숙하고 작은 크기에서도 가독성이 높다.
+     제목(헤드라인)도 동일 서체의 굵은 굵기로 통일해 가독성을 우선한다. */
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', 'Segoe UI', 'Malgun Gothic', sans-serif;
+  --font-serif: var(--font-sans);
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
 }
 
-body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+@layer base {
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    background-image: radial-gradient(rgba(28, 26, 23, 0.018) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--paper);
+  }
 }
 
 @layer utilities {
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+  .label-kicker {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.625rem;
+    font-weight: 500;
+  }
+  .rule-t {
+    border-top: 1px solid var(--rule);
+  }
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -23,4 +75,18 @@ body {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-rise {
+  animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
