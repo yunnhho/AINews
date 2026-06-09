@@ -24,14 +24,15 @@
 
 | 영역 | 기능 |
 |---|---|
-| **콘텐츠 수집** | 4개 소스 그룹(뉴스 RSS·GitHub Releases·엔지니어링 블로그·뉴스레터)에서 6시간 단위 병렬 수집 |
+| **콘텐츠 수집** | 4개 소스 그룹(뉴스 RSS·GitHub·엔지니어링 블로그·뉴스레터)에서 6시간 단위 병렬 수집. GitHub은 Releases·토픽 트렌딩(claude-md 등)·awesome-* README diff·큐레이션 CLAUDE.md까지 확장 |
 | **중복 제거** | URL SHA-256 완전 일치 + 제목 TF-IDF 유사도(≥0.9) 클러스터링 |
 | **AI 처리** | Claude API로 타입 판정 → 요약(What/Why/Impact) → 한국어 번역 → 카테고리·태그·난이도 부여 |
 | **번역 품질 검증** | 역번역 후 `sentence-transformers` 코사인 유사도 ≥0.85만 통과, 미달 시 재시도·수동 검토 큐 이관 |
 | **피드 API** | 커서 페이지네이션 + 카테고리/타입/태그 필터 + Redis 캐싱(TTL 5분) |
 | **개인화 추천** | 규칙 기반(80/20 다양성) → 협업 필터링(implicit ALS) 단계적 고도화, cold start 폴백 |
 | **한국어 검색** | Elasticsearch + nori 형태소 분석기 (Meilisearch에서 마이그레이션) |
-| **인증** | Google·GitHub·Kakao OAuth + JWT |
+| **인증** | Google·GitHub·Kakao OAuth + JWT (만료 토큰 자동 정리·재로그인 유도) |
+| **보안** | 보안 헤더(CSP·HSTS·X-Frame-Options) + Redis 기반 IP 레이트리밋(fail-open) + 운영 시크릿/호스트 가드 |
 | **관리자 대시보드** | 배치 이력·소스 헬스체크·번역 품질·Claude API 비용 모니터링 + Slack/이메일 경보 |
 | **모바일** | Expo 앱 — 스와이프 제스처(좌=북마크, 우=스킵) + Expo 푸시 알림 |
 
@@ -47,7 +48,7 @@
 - **PostgreSQL** 16 — 단일 `cards` 테이블 + 타입별 nullable 컬럼 구조
 - **Redis** 7 — 피드/추천 캐시 + Celery 브로커
 - **Elasticsearch** 8.17 (nori 한국어 형태소 분석기)
-- **Anthropic SDK** + **LangChain** — 요약·번역·분류 프롬프트 체이닝
+- **Anthropic SDK** — 타입별 프롬프트 분리(요약·번역·분류)
 - **sentence-transformers** 3.3 (`paraphrase-multilingual-MiniLM-L12-v2`) — 번역 검증
 - **scikit-learn** — TF-IDF 중복 제거, implicit ALS 추천
 - 인증: **Authlib**(OAuth) + **python-jose**(JWT)
@@ -60,7 +61,9 @@
 - **Next.js** 15 (App Router, SSR/SSG) + **React** 19
 - **Tailwind CSS** 3.4 + **Framer Motion**(애니메이션) + **Shiki**(코드 하이라이팅)
 - **Zustand** — 인증 상태 관리
+- 에디토리얼(신문/매거진) 톤 디자인 + **Pretendard** 본문 폰트 + IBM Plex Mono 라벨
 - SEO: 동적 OG 이미지, sitemap, JSON-LD, PWA manifest
+- 보안: `next.config` 보안 헤더 + CSP
 
 ### Mobile
 - **Expo** 52 + **Expo Router** 4 + **React Native** 0.76
@@ -209,7 +212,8 @@ npx expo start   # EXPO_PUBLIC_API_URL 설정 후 iOS/Android 시뮬레이터
 AINews/
 ├── backend/              # FastAPI 서버
 │   ├── app/
-│   │   ├── routers/      # auth, cards, interactions, recommendations, search, admin, alerts, push, health
+│   │   ├── routers/      # auth, cards, interactions, me, recommendations, search, admin, alerts, push, health
+│   │   ├── middleware.py # 보안 헤더 + 레이트리밋
 │   │   ├── services/     # 비즈니스 로직 레이어
 │   │   ├── models/       # SQLAlchemy 모델
 │   │   ├── schemas/      # Pydantic 스키마
