@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import anthropic
 
@@ -44,7 +44,7 @@ class TechniqueCardData:
     source_url: str = ""
     source_name: str = ""
     source_group: str = ""
-    published_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    published_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     input_tokens: int = 0
     output_tokens: int = 0
 
@@ -107,6 +107,8 @@ def process_technique(item: RawItem) -> TechniqueCardData | None:
 
         if not problem or not idea:
             return None
+        if not summary:
+            summary = idea[:200]
         if category not in _VALID_CATEGORIES:
             category = "CODING"
         if difficulty not in _VALID_DIFFICULTIES:

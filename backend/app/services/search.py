@@ -1,37 +1,16 @@
 """Elasticsearch 쿼리 래퍼 + 인덱스 설정."""
+import json
+from pathlib import Path
+
 from elasticsearch import AsyncElasticsearch, NotFoundError
 
 from app.config import settings
 
 INDEX_NAME = "cards"
 
-_MAPPING = {
-    "settings": {
-        "analysis": {
-            "analyzer": {
-                "korean": {
-                    "type": "custom",
-                    "tokenizer": "nori_tokenizer",
-                    "filter": ["nori_part_of_speech"],
-                }
-            }
-        }
-    },
-    "mappings": {
-        "properties": {
-            "title":        {"type": "text", "analyzer": "korean"},
-            "summary":      {"type": "text", "analyzer": "korean"},
-            "problem":      {"type": "text", "analyzer": "korean"},
-            "idea":         {"type": "text", "analyzer": "korean"},
-            "tags":         {"type": "keyword"},
-            "category":     {"type": "keyword"},
-            "card_type":    {"type": "keyword"},
-            "difficulty":   {"type": "keyword"},
-            "published_at": {"type": "date"},
-            "like_count":   {"type": "integer"},
-        }
-    },
-}
+# 인덱스 매핑의 단일 출처는 es/mappings/cards.json (es/setup.py 재색인 스크립트와 공유)
+_MAPPINGS_FILE = Path(__file__).resolve().parent.parent.parent / "es" / "mappings" / "cards.json"
+_MAPPING = json.loads(_MAPPINGS_FILE.read_text())
 
 
 def _client() -> AsyncElasticsearch:

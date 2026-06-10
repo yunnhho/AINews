@@ -7,7 +7,7 @@ $20 크레딧 테스트에서 비용을 통제한다.
 """
 import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 TEST_LIMIT = int(sys.argv[1]) if len(sys.argv) > 1 else 5
 
@@ -24,7 +24,7 @@ def main() -> None:
     from pipeline.sources.group_b import collect_group_b1
     from pipeline.sources.group_b4 import collect_group_b4
 
-    batch_id = f"test-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    batch_id = f"test-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
     print(f"\n=== 테스트 배치 시작 [{batch_id}] limit={TEST_LIMIT} window={WINDOW_HOURS}h ===\n")
 
     # ① 수집 (큐레이션 CLAUDE.md + NEWS RSS + GitHub Releases)

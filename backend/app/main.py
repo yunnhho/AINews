@@ -5,10 +5,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.config import settings
-from app.exceptions import AppError, app_error_handler, generic_exception_handler, http_exception_handler
+from app.exceptions import (
+    AppError,
+    app_error_handler,
+    generic_exception_handler,
+    http_exception_handler,
+)
 from app.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 from app.redis import close_redis, get_redis
-from app.routers import admin, alerts, auth, cards, health, interactions, me, push, recommendations, search
+from app.routers import (
+    admin,
+    alerts,
+    auth,
+    cards,
+    health,
+    interactions,
+    me,
+    push,
+    recommendations,
+    search,
+)
 from app.services.search import setup_index
 
 _IS_PROD = settings.APP_ENV == "production"

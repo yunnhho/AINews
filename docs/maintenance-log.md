@@ -178,3 +178,43 @@
 - ES/Postgres/Redis의 호스트 포트 노출, ES `xpack.security` 비활성은 로컬 개발 편의용으로 유지
   (운영 배포 시 내부 네트워크 격리 + ES 보안 활성 별도 적용).
 - 레이트리밋은 현재 IP 전역 단일 한도(엔드포인트별 차등 아님).
+
+---
+
+## 2026-06-10 — 전수 점검: 실버그 4건 수정 + 월 예산 하드 캡 도입
+
+**실버그 수정**
+- **Celery beat 스케줄 시간대 버그** (`pipeline/celery_app.py`): `timezone="Asia/Seoul"` 설정 시
+  crontab은 해당 시간대로 해석되는데 UTC 시각(15/21/3/9시)으로 적혀 있어 실제로는
+  **KST 15/21/03/09시에 실행**되던 문제. KST 시각(0/6/12/18시) 직접 기재로 수정,
+  train_cf도 17시→2시(KST 02:00). 컨테이너 내 `remaining_estimate`로 다음 실행
+  시각 = KST 00/06/12/18·02:00 검증 완료.
+- **검색 인덱스 매핑 이원화** (`backend/app/services/search.py`): 앱 시작 시 `setup_index()`가
+  내장한 구버전 매핑(`.en` 서브필드·`tags.text`·lowercase 없음)으로 인덱스를 생성 →
+  ES를 새로 만들면 영어/태그 검색이 조용히 죽는 문제. 단일 출처인
+  `es/mappings/cards.json`을 읽도록 통일.
+- **프론트 프로덕션 빌드 실패** (`app/(feed)/page.tsx`): 미사용 import(`CardSkeletonList`)가
+  ESLint 에러로 `next build` 차단. 제거 후 빌드 통과(16 페이지 생성).
+- **SQLAlchemy 관계 중복 기록 경고** (`app/models/card.py`): `Card.card_tags`·`CardTag.card`·
+  `CardTag.tag`가 `Card.tags`(secondary)와 같은 FK에 쓰기 경합(SAWarning 4건).
+  보조 관계 3개를 `viewonly=True`로 변경. 발행 경로(태그 생성·연결) 실테스트로 회귀 없음 확인.
+
+**업그레이드**
+- **월 예산 하드 캡** (`pipeline/tasks/orchestrate.py` + `models/batch_log.py`):
+  기존엔 `MONTHLY_BUDGET_USD`가 admin 대시보드 표시용일 뿐 강제 없음(메모리 ⚠️ 항목).
+  배치 시작 시 `get_month_cost_usd()`(이달 batch_logs 합계)를 조회, AI 처리 루프가
+  `이번 배치 누적 비용 ≥ (예산 − 이달 누적)`에 도달하면 이후 항목 처리 중단.
+  수집·디듀프(무료)는 그대로 진행. 비용 조회 실패 시 캡 비활성(fail-open).
+  페이크 수집기 테스트: 예산 0 → AI 호출 0회 / 예산 충분 → 전건 처리. 현재 .env 캡 $20.
+- **TECHNIQUE summary 공백 방어** (`technique_processor.py`): summary 빈 응답 시 idea[:200] 폴백.
+- **orchestrate `collected_by_group` 초기값에 B4 누락** 수정(수집 실패 시 키 자체가 빠지던 문제).
+- **ruff 정리**: I001/UP017/UP035/UP007/F401 110건 자동 수정(임포트 정렬·`datetime.UTC`·
+  PEP604 등 동작 불변 규칙만). E501·UP042(enum 기반 변경 위험)는 의도적으로 보류.
+- docker-compose obsolete `version` 키 제거, `.env.example`에 예산 캡 동작 주석.
+
+**검증**
+- API 회귀 16종(피드/필터/카드상세/검색 한·영/auth/me/추천/북마크/admin 6종/좋아요·북마크
+  사이클) 전부 통과, 5xx 0건. 비관리자 admin 403, 위조 토큰 게스트 폴백 200 확인.
+- worker 컨테이너 재빌드 후 `warnings.simplefilter('error')` 하에서 SAWarning 0건.
+- 프론트 `next build` + `next start`로 5개 페이지(피드/검색/북마크/추천/카드상세) SSR 200.
+- mobile `tsc --noEmit` 통과. beat는 여전히 의도적으로 미가동(켜면 KST 00/06/12/18 실배치+실과금).

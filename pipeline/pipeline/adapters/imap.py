@@ -1,6 +1,6 @@
 """IMAP 수신함 어댑터 — 최근 N시간 이내 이메일 파싱."""
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pipeline.adapters.base import BaseAdapter, RawItem, SourceGroup
 
@@ -49,7 +49,7 @@ class IMAPAdapter(BaseAdapter):
                     continue
                 published_at = msg.date
                 if published_at.tzinfo is None:
-                    published_at = published_at.replace(tzinfo=timezone.utc)
+                    published_at = published_at.replace(tzinfo=UTC)
                 if published_at <= since:
                     continue
 

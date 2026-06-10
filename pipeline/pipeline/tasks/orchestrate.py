@@ -1,6 +1,6 @@
 """배치 진입점 — 소스 수집 → 필터 → AI 처리 → 발행 순서 조율."""
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from celery.utils.log import get_task_logger
 
@@ -22,8 +22,8 @@ RETRY_DELAY = 60 * 15  # 15분
 )
 def run_batch(self, scheduled_hour: int = 0):
     """KST 00/06/12/18시 배치 진입점."""
-    batch_id = f"batch-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{scheduled_hour:02d}h-{uuid.uuid4().hex[:8]}"
-    scheduled_at = datetime.now(timezone.utc)
+    batch_id = f"batch-{datetime.now(UTC).strftime('%Y%m%d')}-{scheduled_hour:02d}h-{uuid.uuid4().hex[:8]}"
+    scheduled_at = datetime.now(UTC)
 
     logger.info(f"[{batch_id}] 배치 시작 (scheduled_hour={scheduled_hour})")
 
@@ -84,7 +84,7 @@ def _run_pipeline(batch_id: str, scheduled_hour: int = 0) -> dict:
     from pipeline.sources.group_d2 import collect_group_d2
 
     collected_by_group: dict[str, int] = {
-        "A": 0, "B1": 0, "B2": 0, "B3": 0, "C1": 0, "C2": 0, "D1": 0, "D2": 0,
+        "A": 0, "B1": 0, "B2": 0, "B3": 0, "B4": 0, "C1": 0, "C2": 0, "D1": 0, "D2": 0,
     }
     published_by_type: dict[str, int] = {"NEWS": 0, "TECHNIQUE": 0}
     failed_count = 0
@@ -189,7 +189,32 @@ def _run_pipeline(batch_id: str, scheduled_hour: int = 0) -> dict:
     _COST_IN = 0.80 / 1_000_000
     _COST_OUT = 4.00 / 1_000_000
 
+    # 월 예산 하드 캡 — 이번 달 누적 비용이 MONTHLY_BUDGET_USD에 도달하면 AI 처리를 중단한다.
+    # (수집·디듀프는 무료이므로 그대로 진행, AI 호출만 차단)
+    import os
+    monthly_budget = float(os.getenv("MONTHLY_BUDGET_USD", "100.0"))
+    try:
+        month_spent = batch_log_svc.run_sync(batch_log_svc.get_month_cost_usd())
+    except Exception as exc:
+        logger.warning(f"[{batch_id}] 월 비용 조회 실패(예산 캡 비활성): {exc}")
+        month_spent = 0.0
+    budget_remaining = monthly_budget - month_spent
+    budget_exhausted = False
+
+    if budget_remaining <= 0:
+        logger.warning(
+            f"[{batch_id}] 월 예산 소진(${month_spent:.2f}/${monthly_budget:.2f}) — AI 처리 전체 스킵"
+        )
+
     for item in filtered_items:
+        if api_cost_usd >= budget_remaining:
+            if not budget_exhausted:
+                budget_exhausted = True
+                logger.warning(
+                    f"[{batch_id}] 월 예산 도달 — 남은 {len(filtered_items)}건 중 이후 항목 처리 중단 "
+                    f"(이번 배치 ${api_cost_usd:.4f}, 월 누적 ${month_spent + api_cost_usd:.2f}/${monthly_budget:.2f})"
+                )
+            break
         try:
             is_news = item.source_group in _NEWS_GROUPS
 

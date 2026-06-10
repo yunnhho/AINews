@@ -38,31 +38,32 @@ app.conf.update(
     ),
     task_default_queue="default",
     # KST 00/06/12/18시 배치 스케줄
+    # crontab은 timezone 설정(Asia/Seoul) 기준으로 해석되므로 KST 시각을 그대로 적는다.
     beat_schedule={
         "batch-00-kst": {
             "task": "pipeline.tasks.orchestrate.run_batch",
-            "schedule": crontab(hour=15, minute=0),
+            "schedule": crontab(hour=0, minute=0),
             "kwargs": {"scheduled_hour": 0},
         },
         "batch-06-kst": {
             "task": "pipeline.tasks.orchestrate.run_batch",
-            "schedule": crontab(hour=21, minute=0),
+            "schedule": crontab(hour=6, minute=0),
             "kwargs": {"scheduled_hour": 6},
         },
         "batch-12-kst": {
             "task": "pipeline.tasks.orchestrate.run_batch",
-            "schedule": crontab(hour=3, minute=0),
+            "schedule": crontab(hour=12, minute=0),
             "kwargs": {"scheduled_hour": 12},
         },
         "batch-18-kst": {
             "task": "pipeline.tasks.orchestrate.run_batch",
-            "schedule": crontab(hour=9, minute=0),
+            "schedule": crontab(hour=18, minute=0),
             "kwargs": {"scheduled_hour": 18},
         },
-        # CF 모델 일 1회 재학습 — KST 02:00 (UTC 17:00), 자정 배치 이후
+        # CF 모델 일 1회 재학습 — KST 02:00, 자정 배치 이후
         "train-cf-model-daily": {
             "task": "pipeline.tasks.train_cf.train_cf_model",
-            "schedule": crontab(hour=17, minute=0),  # KST 02:00
+            "schedule": crontab(hour=2, minute=0),
         },
     },
 )

@@ -1,6 +1,6 @@
 """그룹 B-3 — Awesome-* 리스트 README.md 커밋 diff로 신규 항목 감지."""
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import httpx
 from celery.utils.log import get_task_logger
@@ -78,7 +78,7 @@ def _fetch_readme_additions(repo: str, since: datetime, token: str) -> list[str]
 
 def collect_group_b3() -> list[RawItem]:
     """B-3 Awesome 리스트 README 신규 항목 수집."""
-    since = datetime.now(timezone.utc) - timedelta(hours=_WINDOW_HOURS)
+    since = datetime.now(UTC) - timedelta(hours=_WINDOW_HOURS)
     disabled = health_svc.run_sync(health_svc.get_disabled_sources())
     token = os.getenv("GITHUB_TOKEN", "")
     all_items: list[RawItem] = []
@@ -101,7 +101,7 @@ def collect_group_b3() -> list[RawItem]:
                 url=f"https://github.com/{repo}",
                 title=f"{name} — {len(added_lines)}개 신규 항목",
                 content="\n".join(added_lines),
-                published_at=datetime.now(timezone.utc),
+                published_at=datetime.now(UTC),
                 source_name=name,
                 source_group=SourceGroup.GITHUB,
                 original_lang="en",

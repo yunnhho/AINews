@@ -1,6 +1,6 @@
 """그룹 B-1 — GitHub Releases API 소스 9개 수집."""
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from celery.utils.log import get_task_logger
 
@@ -27,7 +27,7 @@ _B1_REPOS: list[str] = [
 
 def collect_group_b1() -> list[RawItem]:
     """B-1 GitHub Releases 수집. Celery 태스크에서 동기 호출."""
-    since = datetime.now(timezone.utc) - timedelta(hours=_WINDOW_HOURS)
+    since = datetime.now(UTC) - timedelta(hours=_WINDOW_HOURS)
     disabled = health_svc.run_sync(health_svc.get_disabled_sources())
     token = os.getenv("GITHUB_TOKEN", "")
     all_items: list[RawItem] = []

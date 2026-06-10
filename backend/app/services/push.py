@@ -1,6 +1,6 @@
 """Expo Push Notification 서비스."""
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from sqlalchemy import select, update
@@ -27,7 +27,7 @@ async def register_device(db: AsyncSession, user_id: int, expo_push_token: str) 
     else:
         device.user_id = user_id
         device.notifications_enabled = True
-        device.updated_at = datetime.now(timezone.utc)
+        device.updated_at = datetime.now(UTC)
 
     await db.flush()
     return device
@@ -42,7 +42,7 @@ async def set_notifications_enabled(
             UserDevice.user_id == user_id,
             UserDevice.expo_push_token == expo_push_token,
         )
-        .values(notifications_enabled=enabled, updated_at=datetime.now(timezone.utc))
+        .values(notifications_enabled=enabled, updated_at=datetime.now(UTC))
     )
 
 

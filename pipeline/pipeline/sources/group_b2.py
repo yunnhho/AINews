@@ -1,6 +1,6 @@
 """그룹 B-2 — GitHub 주제별 트렌딩 리포지토리 수집 (일 1회, KST 00시)."""
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from celery.utils.log import get_task_logger
 
@@ -30,7 +30,7 @@ def collect_group_b2(scheduled_hour: int = -1) -> list[RawItem]:
         logger.info("[Group B-2] 00시 배치가 아님 — 스킵 (scheduled_hour=%d)", scheduled_hour)
         return []
 
-    since = datetime.now(timezone.utc) - timedelta(hours=_WINDOW_HOURS)
+    since = datetime.now(UTC) - timedelta(hours=_WINDOW_HOURS)
     disabled = health_svc.run_sync(health_svc.get_disabled_sources())
     token = os.getenv("GITHUB_TOKEN", "")
     all_items: list[RawItem] = []

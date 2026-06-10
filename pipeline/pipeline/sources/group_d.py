@@ -1,5 +1,5 @@
 """그룹 D-1 — Substack 뉴스레터 RSS 소스 4개 수집."""
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from celery.utils.log import get_task_logger
 
@@ -37,7 +37,7 @@ _D1_SOURCES: list[dict] = [
 
 def collect_group_d1() -> list[RawItem]:
     """D-1 Substack 뉴스레터 수집. Celery 태스크에서 동기 호출."""
-    since = datetime.now(timezone.utc) - timedelta(hours=_WINDOW_HOURS)
+    since = datetime.now(UTC) - timedelta(hours=_WINDOW_HOURS)
     disabled = health_svc.run_sync(health_svc.get_disabled_sources())
     all_items: list[RawItem] = []
 

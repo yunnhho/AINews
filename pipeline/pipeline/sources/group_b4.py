@@ -9,7 +9,7 @@ B-2(topic 검색)는 self-tagging된 리포만 잡으므로, topic이 없거나 
 → 이미 카드화된 파일은 네트워크·AI 비용이 발생하지 않는다.
 """
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from celery.utils.log import get_task_logger
@@ -97,7 +97,7 @@ def _fetch_last_commit_at(repo: str, path: str, branch: str, token: str) -> date
         date_str = commits[0]["commit"]["committer"]["date"]
         return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
     except Exception:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
 
 def collect_group_b4() -> list[RawItem]:

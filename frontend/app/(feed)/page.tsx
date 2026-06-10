@@ -5,7 +5,6 @@ import CategoryTabs from './components/CategoryTabs'
 import TypeFilter from './components/TypeFilter'
 import TagChips from './components/TagChips'
 import InfiniteCardList from './components/InfiniteCardList'
-import { CardSkeletonList } from './components/CardSkeleton'
 
 type SearchParams = Promise<{
   category?: string

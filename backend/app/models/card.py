@@ -2,8 +2,17 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
-    BigInteger, Boolean, CheckConstraint, DateTime, Enum, ForeignKey,
-    Index, Integer, String, Text, func,
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -91,7 +100,10 @@ class Card(Base):
     tags: Mapped[list["Tag"]] = relationship(
         "Tag", secondary="card_tags", back_populates="cards", lazy="selectin"
     )
-    card_tags: Mapped[list["CardTag"]] = relationship("CardTag", back_populates="card")
+    # card_tags 행 기록은 tags(secondary) 관계가 담당 — 보조 관계는 읽기 전용
+    card_tags: Mapped[list["CardTag"]] = relationship(
+        "CardTag", back_populates="card", viewonly=True
+    )
     translation_logs: Mapped[list["TranslationLog"]] = relationship(  # noqa: F821
         "TranslationLog", back_populates="card"
     )
@@ -125,8 +137,8 @@ class CardTag(Base):
     card_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("cards.id", ondelete="CASCADE"), primary_key=True)
     tag_id: Mapped[int] = mapped_column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
 
-    card: Mapped["Card"] = relationship("Card", back_populates="card_tags")
-    tag: Mapped["Tag"] = relationship("Tag")
+    card: Mapped["Card"] = relationship("Card", back_populates="card_tags", viewonly=True)
+    tag: Mapped["Tag"] = relationship("Tag", viewonly=True)
 
     __table_args__ = (
         Index("idx_card_tags_tag", "tag_id"),

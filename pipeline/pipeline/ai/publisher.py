@@ -11,7 +11,7 @@ Elasticsearch에 색인한다. 실패한(passed=False) 영어 원본 카드는 i
 """
 import asyncio
 import os
-from datetime import timezone
+from datetime import UTC
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -129,7 +129,7 @@ async def _save_news(
             tags = await _get_or_create_tags(session, card_data.tags)
             published_at = card_data.published_at
             if published_at.tzinfo is None:
-                published_at = published_at.replace(tzinfo=timezone.utc)
+                published_at = published_at.replace(tzinfo=UTC)
 
             card = Card(
                 card_type=CardType.NEWS,
@@ -184,8 +184,8 @@ async def _save_technique(
     score: float,
     passed: bool,
 ) -> bool:
-    from app.models.card import Card, CardType, Category, Difficulty
     from app.models.batch import TranslationLog
+    from app.models.card import Card, CardType, Category, Difficulty
 
     async with _Session() as session:
         try:
@@ -196,7 +196,7 @@ async def _save_technique(
             tags = await _get_or_create_tags(session, card_data.tags)
             published_at = card_data.published_at
             if published_at.tzinfo is None:
-                published_at = published_at.replace(tzinfo=timezone.utc)
+                published_at = published_at.replace(tzinfo=UTC)
 
             card = Card(
                 card_type=CardType.TECHNIQUE,

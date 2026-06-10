@@ -1,7 +1,7 @@
 """source_health 테이블 조회·업데이트 헬퍼."""
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -37,7 +37,7 @@ async def record_success(source_name: str, source_group: str) -> None:
         else:
             health.consecutive_failures = 0
             health.last_error_log = None
-        health.last_success_at = datetime.now(timezone.utc)
+        health.last_success_at = datetime.now(UTC)
         await session.commit()
 
 

@@ -1,5 +1,5 @@
 """feedparser 기반 RSS 어댑터."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import feedparser
 
@@ -57,7 +57,7 @@ class RSSAdapter(BaseAdapter):
             ts = getattr(entry, key, None) or entry.get(key)
             if ts:
                 try:
-                    return datetime(*ts[:6], tzinfo=timezone.utc)
+                    return datetime(*ts[:6], tzinfo=UTC)
                 except Exception:
                     pass
         return None

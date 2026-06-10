@@ -1,5 +1,5 @@
 """Hacker News Algolia Search API 어댑터."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -46,7 +46,7 @@ class HackerNewsAdapter(BaseAdapter):
                 created_ts = hit.get("created_at_i")
                 if not created_ts:
                     continue
-                published_at = datetime.fromtimestamp(created_ts, tz=timezone.utc)
+                published_at = datetime.fromtimestamp(created_ts, tz=UTC)
 
                 title = (hit.get("title") or "").strip()
                 if not title:

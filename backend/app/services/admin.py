@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import cast, Date, func, select
+from sqlalchemy import Date, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -12,8 +12,8 @@ from app.services import search as search_svc
 
 
 async def get_metrics(db: AsyncSession) -> dict:
-    today = datetime.now(timezone.utc).date()
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    today = datetime.now(UTC).date()
+    week_ago = datetime.now(UTC) - timedelta(days=7)
     month_start = today.replace(day=1)
     thirty_days_ago = today - timedelta(days=30)
 
@@ -151,7 +151,7 @@ async def handle_translation_review(db: AsyncSession, log_id: int, action: str) 
 
 
 async def get_daily_costs(db: AsyncSession) -> dict:
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     thirty_days_ago = today - timedelta(days=30)
     rows = (await db.execute(
         select(

@@ -1,6 +1,6 @@
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import update
@@ -39,7 +39,7 @@ async def mark_batch_running(batch_id: str) -> None:
         await session.execute(
             update(BatchLog)
             .where(BatchLog.batch_id == batch_id)
-            .values(status=BatchStatus.RUNNING, started_at=datetime.now(timezone.utc))
+            .values(status=BatchStatus.RUNNING, started_at=datetime.now(UTC))
         )
         await session.commit()
 
@@ -69,7 +69,7 @@ async def mark_batch_completed(
             .where(BatchLog.batch_id == batch_id)
             .values(
                 status=status,
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
                 collected_by_group=collected_by_group,
                 deduplicated_count=deduplicated_count,
                 published_by_type=published_by_type,
@@ -82,6 +82,22 @@ async def mark_batch_completed(
         await session.commit()
 
 
+async def get_month_cost_usd(now: datetime | None = None) -> float:
+    """이번 달(UTC) 배치 API 비용 합계 — 예산 하드 캡 판단용."""
+    from app.models.batch import BatchLog
+    from sqlalchemy import func, select
+
+    now = now or datetime.now(UTC)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    async with _get_session() as session:
+        result = await session.execute(
+            select(func.coalesce(func.sum(BatchLog.api_cost_usd), 0)).where(
+                BatchLog.scheduled_at >= month_start
+            )
+        )
+        return float(result.scalar_one())
+
+
 async def mark_batch_failed(batch_id: str, error: str) -> None:
     from app.models.batch import BatchLog, BatchStatus
 
@@ -91,7 +107,7 @@ async def mark_batch_failed(batch_id: str, error: str) -> None:
             .where(BatchLog.batch_id == batch_id)
             .values(
                 status=BatchStatus.FAILED,
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
                 error_log=error,
             )
         )

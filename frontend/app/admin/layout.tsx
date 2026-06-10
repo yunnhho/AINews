@@ -61,10 +61,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
       </aside>
 
-      {/* 메인 */}
-      <main className="flex-1 pt-14 overflow-auto">
+      {/* 메인 — 루트 레이아웃의 <main> 안에 중첩되므로 section 사용 */}
+      <section className="flex-1 pt-14 overflow-auto">
         <div className="max-w-5xl mx-auto p-6">{children}</div>
-      </main>
+      </section>
     </div>
   )
 }
