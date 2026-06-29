@@ -15,10 +15,10 @@ const NAV = [
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { token } = useAuthStore()
+  const { user, refreshUser } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
-  // zustand persist 재수화 완료 전에는 token이 null이라, 재수화를 기다린 뒤에만
+  // zustand persist 재수화 완료 전에는 user가 null이라, 재수화를 기다린 뒤에만
   // 미로그인 리다이렉트를 판단한다. (그렇지 않으면 새로고침 시 항상 홈으로 튕긴다.)
   const [hydrated, setHydrated] = useState(false)
 
@@ -28,12 +28,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return unsub
   }, [])
 
+  // 쿠키 세션 실제 상태로 동기화(만료 시 user를 비워 리다이렉트 유도).
   useEffect(() => {
-    if (hydrated && !token) router.replace('/')
-  }, [hydrated, token, router])
+    if (document.cookie.includes('csrf_token=')) refreshUser()
+  }, [refreshUser])
+
+  useEffect(() => {
+    if (hydrated && !user) router.replace('/')
+  }, [hydrated, user, router])
 
   if (!hydrated) return null
-  if (!token) return null
+  if (!user) return null
 
   return (
     <div className="flex min-h-screen bg-gray-50">

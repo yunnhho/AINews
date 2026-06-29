@@ -24,7 +24,7 @@ interface Props {
 }
 
 export default function CardActions({ card }: Props) {
-  const { token } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [isLiked, setIsLiked] = useState(card.is_liked)
   const [likeCount, setLikeCount] = useState(card.like_count)
   const [isBookmarked, setIsBookmarked] = useState(card.is_bookmarked)
@@ -35,9 +35,9 @@ export default function CardActions({ card }: Props) {
   // 로그인 상태면 서버의 실제 좋아요/북마크 상태로 동기화한다.
   // (CardActions는 카드 확장 시 또는 상세 페이지에서만 마운트되므로 요청 비용이 작다.)
   useEffect(() => {
-    if (!token) return
+    if (!user) return
     let cancelled = false
-    getCard(card.id, token)
+    getCard(card.id)
       .then((fresh) => {
         if (cancelled) return
         setIsLiked(fresh.is_liked)
@@ -49,7 +49,7 @@ export default function CardActions({ card }: Props) {
     return () => {
       cancelled = true
     }
-  }, [token, card.id])
+  }, [user, card.id])
 
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY
@@ -66,13 +66,13 @@ export default function CardActions({ card }: Props) {
   }, [])
 
   async function toggleLike() {
-    if (!token) { setShowAuth(true); return }
+    if (!user) { setShowAuth(true); return }
     const snapshot = { isLiked, likeCount }
     setIsLiked(!isLiked)
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1)
     try {
-      if (isLiked) await unlikeCard(card.id, token)
-      else await likeCard(card.id, token)
+      if (isLiked) await unlikeCard(card.id)
+      else await likeCard(card.id)
     } catch (e) {
       setIsLiked(snapshot.isLiked)
       setLikeCount(snapshot.likeCount)
@@ -82,13 +82,13 @@ export default function CardActions({ card }: Props) {
   }
 
   async function toggleBookmark() {
-    if (!token) { setShowAuth(true); return }
+    if (!user) { setShowAuth(true); return }
     const snapshot = { isBookmarked, bookmarkCount }
     setIsBookmarked(!isBookmarked)
     setBookmarkCount(isBookmarked ? bookmarkCount - 1 : bookmarkCount + 1)
     try {
-      if (isBookmarked) await unbookmarkCard(card.id, token)
-      else await bookmarkCard(card.id, token)
+      if (isBookmarked) await unbookmarkCard(card.id)
+      else await bookmarkCard(card.id)
     } catch (e) {
       setIsBookmarked(snapshot.isBookmarked)
       setBookmarkCount(snapshot.bookmarkCount)

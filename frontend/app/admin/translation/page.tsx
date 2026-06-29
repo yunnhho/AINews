@@ -6,20 +6,20 @@ import { useAuthStore } from '@/stores/auth'
 import { adminApi, type TranslationItem } from '@/lib/admin-api'
 
 export default function TranslationPage() {
-  const { token } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [items, setItems] = useState<TranslationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!token) return
-    adminApi.getTranslationQueue(token).then((r) => setItems(r.items)).catch(() => {}).finally(() => setLoading(false))
-  }, [token])
+    if (!user) return
+    adminApi.getTranslationQueue().then((r) => setItems(r.items)).catch(() => {}).finally(() => setLoading(false))
+  }, [user])
 
   async function handleReview(logId: number, action: 'approve' | 'reject') {
-    if (!token) return
+    if (!user) return
     try {
-      await adminApi.reviewTranslation(logId, action, token)
+      await adminApi.reviewTranslation(logId, action)
       setItems((prev) =>
         action === 'reject'
           ? prev.filter((i) => i.id !== logId)

@@ -18,7 +18,7 @@ function todayLine(): string {
 }
 
 export default function RecommendedPage() {
-  const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
   const [hydrated, setHydrated] = useState(false)
   const [items, setItems] = useState<Card[] | null>(null)
   const [error, setError] = useState(false)
@@ -30,16 +30,16 @@ export default function RecommendedPage() {
   }, [])
 
   useEffect(() => {
-    if (!token) return
+    if (!user) return
     let cancelled = false
     setError(false)
-    getRecommended(token, 30)
+    getRecommended(30)
       .then((d) => !cancelled && setItems(d.items))
       .catch(() => !cancelled && setError(true))
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [user])
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6">
@@ -64,7 +64,7 @@ export default function RecommendedPage() {
 
       {/* ── 본문 ── */}
       <div className="pb-16">
-        {hydrated && !token && (
+        {hydrated && !user && (
           <EmptyState
             title="로그인하면 추천이 시작돼요"
             body="좋아요·북마크 몇 개만 남겨도 당신을 위한 셀렉션이 만들어집니다."
@@ -72,19 +72,19 @@ export default function RecommendedPage() {
           />
         )}
 
-        {token && items === null && !error && (
+        {user && items === null && !error && (
           <div className="pt-2">
             <CardSkeletonList count={4} />
           </div>
         )}
 
-        {token && error && (
+        {user && error && (
           <p className="py-16 text-center text-sm text-accent-ink">
             추천을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
           </p>
         )}
 
-        {token && items !== null && items.length === 0 && (
+        {user && items !== null && items.length === 0 && (
           <EmptyState
             title="아직 추천할 카드가 모자라요"
             body="마음에 드는 카드에 좋아요나 북마크를 남겨 주세요. 취향이 쌓이면 이 자리가 채워집니다."
@@ -92,7 +92,7 @@ export default function RecommendedPage() {
           />
         )}
 
-        {token && items !== null && items.length > 0 && (
+        {user && items !== null && items.length > 0 && (
           <ol className="flex flex-col">
             {items.map((card, i) => (
               <li

@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { setUnauthorizedHandler } from '@/lib/api'
+import { fetchMe, logoutRequest, setUnauthorizedHandler } from '@/lib/api'
 
 export interface AuthUser {
   id: number
@@ -11,46 +11,46 @@ export interface AuthUser {
 }
 
 interface AuthState {
-  token: string | null
+  // 토큰은 HttpOnly 쿠키에만 존재한다. 프론트는 비민감 프로필만 보관한다.
   user: AuthUser | null
-  setAuth: (token: string, user: AuthUser) => void
-  logout: () => void
-}
-
-// JWT exp(초)를 디코드해 만료 여부를 판단한다. 형식이 깨졌으면 만료로 간주.
-function isTokenExpired(token: string): boolean {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    if (typeof payload.exp !== 'number') return false
-    return payload.exp * 1000 <= Date.now()
-  } catch {
-    return true
-  }
+  setUser: (user: AuthUser | null) => void
+  refreshUser: () => Promise<void>
+  logout: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      token: null,
       user: null,
-      setAuth: (token, user) => set({ token, user }),
-      logout: () => set({ token: null, user: null }),
+      setUser: (user) => set({ user }),
+      // 쿠키 세션의 실제 상태를 /auth/me로 확인해 프로필을 동기화한다.
+      refreshUser: async () => {
+        try {
+          const me = await fetchMe()
+          set({ user: { id: me.id, nickname: me.nickname, avatar_url: me.avatar_url } })
+        } catch {
+          set({ user: null })
+        }
+      },
+      // 서버에서 refresh token 폐기 + 쿠키 삭제 후 로컬 상태 정리.
+      logout: async () => {
+        try {
+          await logoutRequest()
+        } catch {
+          // 네트워크 오류여도 로컬 상태는 비운다.
+        }
+        set({ user: null })
+      },
     }),
     {
       name: 'ai-pulse-auth',
-      // 새로고침으로 저장된 토큰을 복원할 때 이미 만료됐으면 즉시 비운다.
-      // (만료 토큰으로 로그인 상태처럼 보이지만 모든 인증 동작이 401로 실패하는 버그 방지)
-      onRehydrateStorage: () => (state) => {
-        if (state?.token && isTokenExpired(state.token)) {
-          state.token = null
-          state.user = null
-        }
-      },
+      // 토큰은 저장하지 않는다 — 비민감 프로필만 영속화한다.
+      partialize: (state) => ({ user: state.user }),
     },
   ),
 )
 
-// 인증 요청이 401을 받으면(세션 중 만료 등) 스토어를 비워 UI를 실제 상태로 되돌린다.
+// 인증 요청이 401을 받으면(세션 만료 등) 로컬 로그인 상태를 비운다.
 if (typeof window !== 'undefined') {
-  setUnauthorizedHandler(() => useAuthStore.getState().logout())
+  setUnauthorizedHandler(() => useAuthStore.setState({ user: null }))
 }

@@ -11,6 +11,16 @@ class Settings(BaseSettings):
     ALLOWED_HOSTS: str = "localhost,127.0.0.1,.aipulse.kr"
     # IP당 분당 요청 상한 (레이트리밋). 무한스크롤 피드를 막지 않도록 넉넉히.
     RATELIMIT_PER_MINUTE: int = 300
+    # 인증 경로(/v1/auth) 전용 강한 레이트리밋 — 토큰/코드 brute-force 방어.
+    AUTH_RATELIMIT_PER_MINUTE: int = 10
+    # 앞단 신뢰 프록시(L7 LB 등) 홉 수. XFF 스푸핑 방어를 위해 끝에서 N번째를 클라이언트 IP로 본다.
+    # 프록시 없이 직접 노출이면 0 (XFF 무시).
+    TRUSTED_PROXY_COUNT: int = 0
+
+    # 인증 쿠키 (웹). 운영에서는 COOKIE_SECURE=true, COOKIE_DOMAIN=.aipulse.kr 권장.
+    COOKIE_DOMAIN: str = ""        # 비우면 호스트 전용 쿠키
+    COOKIE_SECURE: bool = False    # 운영(HTTPS)에서 True
+    COOKIE_SAMESITE: str = "lax"   # 동일 사이트(서브도메인)면 lax로 CSRF 1차 방어
 
     # DB
     DATABASE_URL: str = "postgresql+asyncpg://aipulse:aipulse@localhost:5432/aipulse"
@@ -76,6 +86,15 @@ class Settings(BaseSettings):
     @property
     def allowed_hosts_list(self) -> list[str]:
         return [h.strip() for h in self.ALLOWED_HOSTS.split(",") if h.strip()]
+
+    @property
+    def cookie_secure(self) -> bool:
+        # 운영 환경에서는 명시 설정과 무관하게 항상 Secure 강제.
+        return self.COOKIE_SECURE or self.APP_ENV == "production"
+
+    @property
+    def cookie_domain(self) -> str | None:
+        return self.COOKIE_DOMAIN or None
 
     @property
     def admin_user_ids_list(self) -> list[int]:

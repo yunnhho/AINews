@@ -21,7 +21,7 @@ export default function InfiniteCardList({
   initialHasMore,
   params,
 }: Props) {
-  const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
   const [items, setItems] = useState<Card[]>(initialItems)
   const [cursor, setCursor] = useState<string | null>(initialCursor)
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -35,12 +35,12 @@ export default function InfiniteCardList({
     setHasMore(initialHasMore)
   }, [initialItems, initialCursor, initialHasMore])
 
-  // SSR 초기 데이터는 토큰이 없어 is_liked/is_bookmarked가 모두 false다.
-  // 로그인 상태면 토큰으로 1페이지를 다시 받아 좋아요/북마크 상태를 반영한다.
+  // SSR 초기 데이터는 인증 쿠키가 없어 is_liked/is_bookmarked가 모두 false다.
+  // 로그인 상태면 1페이지를 다시 받아(쿠키 인증) 좋아요/북마크 상태를 반영한다.
   useEffect(() => {
-    if (!token) return
+    if (!user) return
     let cancelled = false
-    getCards({ ...params, limit: 20 }, token)
+    getCards({ ...params, limit: 20 })
       .then((data) => {
         if (cancelled) return
         setItems(data.items)
@@ -51,15 +51,15 @@ export default function InfiniteCardList({
     return () => {
       cancelled = true
     }
-    // params는 필터 변경 시 컴포넌트가 remount되므로 token만 의존성으로 둔다.
+    // params는 필터 변경 시 컴포넌트가 remount되므로 user만 의존성으로 둔다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+  }, [user])
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore || !cursor) return
     setIsLoading(true)
     try {
-      const data = await getCards({ ...params, cursor, limit: 20 }, token ?? undefined)
+      const data = await getCards({ ...params, cursor, limit: 20 })
       setItems((prev) => [...prev, ...data.items])
       setCursor(data.next_cursor)
       setHasMore(data.has_more)
@@ -68,7 +68,7 @@ export default function InfiniteCardList({
     } finally {
       setIsLoading(false)
     }
-  }, [isLoading, hasMore, cursor, params, token])
+  }, [isLoading, hasMore, cursor, params])
 
   useEffect(() => {
     const el = sentinelRef.current

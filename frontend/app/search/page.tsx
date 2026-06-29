@@ -11,7 +11,7 @@ import { CardSkeletonList } from '../(feed)/components/CardSkeleton'
 function SearchView() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
 
   const initialQ = searchParams.get('q') ?? ''
   const [input, setInput] = useState(initialQ)
@@ -35,7 +35,7 @@ function SearchView() {
     let cancelled = false
     setLoading(true)
     setError(false)
-    searchCards(q, { limit: 20 }, token ?? undefined)
+    searchCards(q, { limit: 20 })
       .then((data) => {
         if (!cancelled) setItems(data.items)
       })
@@ -48,7 +48,8 @@ function SearchView() {
     return () => {
       cancelled = true
     }
-  }, [query, token])
+    // user 변화 시 개인화 플래그 갱신을 위해 재검색.
+  }, [query, user])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

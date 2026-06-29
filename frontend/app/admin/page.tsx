@@ -15,14 +15,14 @@ function MetricCard({ label, value, sub }: { label: string; value: string; sub?:
 }
 
 export default function AdminDashboard() {
-  const { token } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [data, setData] = useState<AdminMetrics | null>(null)
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    if (!token) return
-    adminApi.getMetrics(token).then(setData).catch(() => setError(true))
-  }, [token])
+    if (!user) return
+    adminApi.getMetrics().then(setData).catch(() => setError(true))
+  }, [user])
 
   if (error) {
     return (

@@ -13,6 +13,11 @@ from app.models.user import User
 _AUTH_CODE_PREFIX = "auth_code:"
 _AUTH_CODE_TTL = 300  # 5분 일회용
 
+_OAUTH_STATE_PREFIX = "oauth_state:"
+_OAUTH_STATE_TTL = 600  # 10분 — 로그인 왕복 동안만 유효
+
+_REFRESH_JTI_PREFIX = "refresh_jti:"
+
 ALGORITHM = "HS256"
 
 OAUTH_CONFIGS = {
@@ -46,12 +51,27 @@ OAUTH_CONFIGS = {
 }
 
 
-def get_oauth_redirect_url(provider: str, platform: str = "web") -> str:
-    """OAuth 인증 URL 생성. platform 값을 state 파라미터로 전달해 콜백에서 리다이렉트 대상을 결정한다."""
+async def create_oauth_state(platform: str) -> str:
+    """CSRF 방어용 랜덤 state를 Redis에 저장한다. 값에 platform을 담아 콜백에서 복원한다."""
+    from app.redis import get_redis
+    redis = await get_redis()
+    state = secrets.token_urlsafe(24)
+    await redis.set(f"{_OAUTH_STATE_PREFIX}{state}", platform, ex=_OAUTH_STATE_TTL)
+    return state
+
+
+async def consume_oauth_state(state: str) -> str | None:
+    """state를 원자적으로 조회·삭제하고 platform을 반환한다. 없으면 None(위조/만료/재사용)."""
+    from app.redis import get_redis
+    redis = await get_redis()
+    return await redis.getdel(f"{_OAUTH_STATE_PREFIX}{state}")
+
+
+def get_oauth_redirect_url(provider: str, state: str) -> str:
+    """OAuth 인증 URL 생성. 호출부에서 발급한 랜덤 state를 그대로 전달한다(CSRF 방어)."""
     cfg = OAUTH_CONFIGS[provider]
     client_id = getattr(settings, cfg["client_id_key"])
     redirect_uri = getattr(settings, cfg["redirect_uri_key"])
-    state = platform  # "mobile" | "web"
 
     if provider == "google":
         return (
@@ -191,20 +211,63 @@ def create_access_token(user_id: int) -> str:
     )
 
 
-def create_refresh_token(user_id: int) -> str:
+async def issue_refresh_token(user_id: int) -> str:
+    """jti가 박힌 refresh token을 발급하고 Redis 화이트리스트에 등록한다(폐기·회전 가능)."""
+    from app.redis import get_redis
+    redis = await get_redis()
+    jti = secrets.token_urlsafe(16)
     expire = datetime.now(UTC) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
-    return jwt.encode(
-        {"sub": str(user_id), "exp": expire, "type": "refresh"},
+    token = jwt.encode(
+        {"sub": str(user_id), "exp": expire, "type": "refresh", "jti": jti},
         settings.JWT_SECRET,
         algorithm=ALGORITHM,
     )
+    await redis.set(
+        f"{_REFRESH_JTI_PREFIX}{jti}",
+        str(user_id),
+        ex=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+    )
+    return token
+
+
+def _decode_payload(token: str, expected_type: str) -> dict:
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[ALGORITHM])
+    except JWTError:
+        raise UnauthorizedError("유효하지 않거나 만료된 토큰입니다.")
+    if payload.get("type") != expected_type:
+        raise UnauthorizedError("유효하지 않은 토큰 타입입니다.")
+    return payload
 
 
 def decode_token(token: str, expected_type: str = "access") -> int:
+    return int(_decode_payload(token, expected_type)["sub"])
+
+
+async def rotate_refresh_token(token: str) -> tuple[int, str]:
+    """refresh token을 검증·일회용 소비하고 새 refresh token으로 회전한다.
+
+    화이트리스트에 jti가 없으면(이미 회전/폐기됨 또는 재사용) 거부한다.
+    """
+    from app.redis import get_redis
+    payload = _decode_payload(token, "refresh")
+    jti = payload.get("jti")
+    user_id = int(payload["sub"])
+    redis = await get_redis()
+    if not jti or not await redis.getdel(f"{_REFRESH_JTI_PREFIX}{jti}"):
+        raise UnauthorizedError("유효하지 않거나 폐기된 리프레시 토큰입니다.")
+    new_refresh = await issue_refresh_token(user_id)
+    return user_id, new_refresh
+
+
+async def revoke_refresh_token(token: str) -> None:
+    """로그아웃 등에서 refresh token의 jti를 화이트리스트에서 제거한다(베스트에포트)."""
+    from app.redis import get_redis
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[ALGORITHM])
-        if payload.get("type") != expected_type:
-            raise UnauthorizedError("유효하지 않은 토큰 타입입니다.")
-        return int(payload["sub"])
-    except JWTError:
-        raise UnauthorizedError("유효하지 않거나 만료된 토큰입니다.")
+        payload = _decode_payload(token, "refresh")
+    except UnauthorizedError:
+        return
+    jti = payload.get("jti")
+    if jti:
+        redis = await get_redis()
+        await redis.delete(f"{_REFRESH_JTI_PREFIX}{jti}")

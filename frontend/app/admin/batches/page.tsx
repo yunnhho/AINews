@@ -22,14 +22,14 @@ const STATUS_LABEL: Record<BatchLog['status'], string> = {
 }
 
 export default function BatchesPage() {
-  const { token } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [batches, setBatches] = useState<BatchLog[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!token) return
-    adminApi.getBatches(token).then((r) => setBatches(r.items)).catch(() => {}).finally(() => setLoading(false))
-  }, [token])
+    if (!user) return
+    adminApi.getBatches().then((r) => setBatches(r.items)).catch(() => {}).finally(() => setLoading(false))
+  }, [user])
 
   return (
     <div className="space-y-4">

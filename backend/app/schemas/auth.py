@@ -19,3 +19,8 @@ class UserProfile(BaseModel):
 
 class AuthCodeExchangeRequest(BaseModel):
     code: str
+
+
+class RefreshTokenRequest(BaseModel):
+    # 웹은 쿠키로 받으므로 모바일(본문) 전용. 비어 있으면 쿠키를 사용한다.
+    refresh_token: str | None = None

@@ -1,55 +1,72 @@
-from urllib.parse import urlencode
-
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Cookie, Depends, Query
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import Response
 
 from app.config import settings
+from app.cookies import set_auth_cookies, clear_auth_cookies
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.exceptions import NotFoundError, UnauthorizedError
 from app.models.user import User
-from app.schemas.auth import AuthCodeExchangeRequest, TokenResponse, UserProfile
+from app.schemas.auth import (
+    AuthCodeExchangeRequest,
+    RefreshTokenRequest,
+    TokenResponse,
+    UserProfile,
+)
 from app.services import auth as auth_svc
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
 
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+async def _resolve_user_or_404(db: AsyncSession, user_id: int) -> User:
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise UnauthorizedError("존재하지 않는 사용자입니다.")
+    return user
+
+
+async def _complete_login(platform: str, user: User) -> Response:
+    """플랫폼별 로그인 마무리.
+
+    - mobile: 일회용 코드를 딥링크로 전달(토큰은 /exchange에서 교환)
+    - web   : access/refresh를 HttpOnly 쿠키로 설정하고 프론트로 리다이렉트(토큰 URL 노출 없음)
+    """
+    if platform == "mobile":
+        auth_code = await auth_svc.create_auth_code(user.id)
+        return RedirectResponse(url=f"aipulse://auth/callback?code={auth_code}", status_code=302)
+
+    access_token = auth_svc.create_access_token(user.id)
+    refresh_token = await auth_svc.issue_refresh_token(user.id)
+    resp = RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback", status_code=302)
+    set_auth_cookies(resp, access_token, refresh_token)
+    return resp
 
 
 # ── 카카오 ──────────────────────────────────────────────────────────────────
 
 @router.get("/kakao")
 async def kakao_redirect(platform: str = Query("web")):
-    return RedirectResponse(url=auth_svc.get_oauth_redirect_url("kakao", platform=platform))
+    state = await auth_svc.create_oauth_state(platform)
+    return RedirectResponse(url=auth_svc.get_oauth_redirect_url("kakao", state))
 
 
 @router.get("/kakao/callback")
 async def kakao_callback(
     code: str = Query(...),
-    state: str = Query("web"),
+    state: str = Query(default=""),
     db: AsyncSession = Depends(get_db),
 ):
+    platform = await auth_svc.consume_oauth_state(state)
+    if platform is None:
+        raise UnauthorizedError("유효하지 않거나 만료된 인증 요청입니다.")
     user_info = await auth_svc.exchange_code_for_user_info("kakao", code)
     user = await auth_svc.get_or_create_user(db, "kakao", user_info)
-
-    if state == "mobile":
-        auth_code = await auth_svc.create_auth_code(user.id)
-        return RedirectResponse(url=f"aipulse://auth/callback?code={auth_code}", status_code=302)
-
-    # 웹 플로우 — JWT를 웹 프론트엔드로 전달
-    access_token = auth_svc.create_access_token(user.id)
-    params = urlencode({
-        "access_token": access_token,
-        "user_id": user.id,
-        "nickname": user.nickname or "",
-        "avatar_url": user.avatar_url or "",
-    })
-    return RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback?{params}", status_code=302)
+    await db.commit()
+    return await _complete_login(platform, user)
 
 
 # ── /me — /{provider} 앞에 등록해야 섀도잉되지 않음 ────────────────────────
@@ -65,38 +82,30 @@ async def get_me(current_user: User = Depends(get_current_user)):
 async def oauth_redirect(provider: str, platform: str = Query("web")):
     if provider not in ("google", "github"):
         raise NotFoundError("provider")
-    return RedirectResponse(url=auth_svc.get_oauth_redirect_url(provider, platform=platform))
+    state = await auth_svc.create_oauth_state(platform)
+    return RedirectResponse(url=auth_svc.get_oauth_redirect_url(provider, state))
 
 
 @router.get("/{provider}/callback")
 async def oauth_callback(
     provider: str,
     code: str = Query(...),
-    state: str = Query("web"),
+    state: str = Query(default=""),
     db: AsyncSession = Depends(get_db),
 ):
     if provider not in ("google", "github"):
         raise NotFoundError("provider")
 
+    platform = await auth_svc.consume_oauth_state(state)
+    if platform is None:
+        raise UnauthorizedError("유효하지 않거나 만료된 인증 요청입니다.")
     user_info = await auth_svc.exchange_code_for_user_info(provider, code)
     user = await auth_svc.get_or_create_user(db, provider, user_info)
-
-    if state == "mobile":
-        auth_code = await auth_svc.create_auth_code(user.id)
-        return RedirectResponse(url=f"aipulse://auth/callback?code={auth_code}", status_code=302)
-
-    # 웹 플로우
-    access_token = auth_svc.create_access_token(user.id)
-    params = urlencode({
-        "access_token": access_token,
-        "user_id": user.id,
-        "nickname": user.nickname or "",
-        "avatar_url": user.avatar_url or "",
-    })
-    return RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback?{params}", status_code=302)
+    await db.commit()
+    return await _complete_login(platform, user)
 
 
-# ── 일회용 코드 교환 ────────────────────────────────────────────────────────
+# ── 일회용 코드 교환 (모바일) ────────────────────────────────────────────────
 
 @router.post("/exchange", response_model=TokenResponse)
 async def exchange_auth_code(
@@ -108,36 +117,57 @@ async def exchange_auth_code(
     if user_id is None:
         raise UnauthorizedError("유효하지 않거나 만료된 인증 코드입니다.")
 
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if user is None:
-        raise UnauthorizedError()
-
+    user = await _resolve_user_or_404(db, user_id)
     return TokenResponse(
         access_token=auth_svc.create_access_token(user.id),
-        refresh_token=auth_svc.create_refresh_token(user.id),
+        refresh_token=await auth_svc.issue_refresh_token(user.id),
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
 
-# ── 기타 ────────────────────────────────────────────────────────────────────
+# ── 토큰 갱신 (회전) ──────────────────────────────────────────────────────────
 
-@router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(body: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
-    user_id = auth_svc.decode_token(body.refresh_token, expected_type="refresh")
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if user is None:
-        raise UnauthorizedError()
+@router.post("/refresh")
+async def refresh_token(
+    body: RefreshTokenRequest | None = None,
+    refresh_cookie: str | None = Cookie(default=None, alias="refresh_token"),
+    db: AsyncSession = Depends(get_db),
+):
+    """refresh token을 회전한다. 웹은 쿠키, 모바일은 본문으로 받는다."""
+    body_token = body.refresh_token if body and body.refresh_token else None
+    token = body_token or refresh_cookie
+    if not token:
+        raise UnauthorizedError("리프레시 토큰이 없습니다.")
 
+    user_id, new_refresh = await auth_svc.rotate_refresh_token(token)
+    user = await _resolve_user_or_404(db, user_id)
+    access_token = auth_svc.create_access_token(user.id)
+
+    # 웹(쿠키) 플로우 — 토큰을 본문에 노출하지 않고 쿠키만 갱신.
+    if refresh_cookie and not body_token:
+        resp = Response(status_code=204)
+        set_auth_cookies(resp, access_token, new_refresh)
+        return resp
+
+    # 모바일 — JSON 반환.
     return TokenResponse(
-        access_token=auth_svc.create_access_token(user.id),
-        refresh_token=auth_svc.create_refresh_token(user.id),
+        access_token=access_token,
+        refresh_token=new_refresh,
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
+
+# ── 로그아웃 ──────────────────────────────────────────────────────────────────
 
 @router.delete("/logout", status_code=204)
-async def logout():
-    # JWT는 stateless — 클라이언트에서 토큰 삭제
-    return None
+async def logout(
+    body: RefreshTokenRequest | None = None,
+    refresh_cookie: str | None = Cookie(default=None, alias="refresh_token"),
+):
+    """refresh token을 폐기하고 인증 쿠키를 제거한다."""
+    token = (body.refresh_token if body and body.refresh_token else None) or refresh_cookie
+    if token:
+        await auth_svc.revoke_refresh_token(token)
+    resp = Response(status_code=204)
+    clear_auth_cookies(resp)
+    return resp

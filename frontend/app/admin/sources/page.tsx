@@ -6,21 +6,21 @@ import { useAuthStore } from '@/stores/auth'
 import { adminApi, type SourceHealth } from '@/lib/admin-api'
 
 export default function SourcesPage() {
-  const { token } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [sources, setSources] = useState<SourceHealth[]>([])
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!token) return
-    adminApi.getSourceHealth(token).then((r) => setSources(r.items)).catch(() => {}).finally(() => setLoading(false))
-  }, [token])
+    if (!user) return
+    adminApi.getSourceHealth().then((r) => setSources(r.items)).catch(() => {}).finally(() => setLoading(false))
+  }, [user])
 
   async function handleToggle(src: SourceHealth) {
-    if (!token || toggling !== null) return
+    if (!user || toggling !== null) return
     setToggling(src.source_id)
     try {
-      await adminApi.toggleSource(src.source_id, !src.enabled, token)
+      await adminApi.toggleSource(src.source_id, !src.enabled)
       setSources((prev) =>
         prev.map((s) => s.source_id === src.source_id ? { ...s, enabled: !s.enabled } : s)
       )

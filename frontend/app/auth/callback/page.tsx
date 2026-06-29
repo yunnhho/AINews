@@ -1,25 +1,18 @@
 'use client'
 
 import { Suspense, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth'
 
 function CallbackHandler() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const setAuth = useAuthStore((s) => s.setAuth)
+  const refreshUser = useAuthStore((s) => s.refreshUser)
 
   useEffect(() => {
-    const token = searchParams.get('access_token')
-    const userId = Number(searchParams.get('user_id') ?? 0)
-    const nickname = searchParams.get('nickname') ?? ''
-    const avatarUrl = searchParams.get('avatar_url') || null
-
-    if (token && userId) {
-      setAuth(token, { id: userId, nickname, avatar_url: avatarUrl })
-    }
-    router.replace('/')
-  }, [searchParams, setAuth, router])
+    // 백엔드가 HttpOnly 쿠키로 세션을 설정한 뒤 이 페이지로 리다이렉트한다.
+    // 토큰은 URL에 없으며, /auth/me로 프로필만 받아 스토어를 채운다.
+    refreshUser().finally(() => router.replace('/'))
+  }, [refreshUser, router])
 
   return (
     <div className="flex items-center justify-center min-h-screen">

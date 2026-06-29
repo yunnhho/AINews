@@ -11,7 +11,11 @@ from app.exceptions import (
     generic_exception_handler,
     http_exception_handler,
 )
-from app.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
+from app.middleware import (
+    CsrfMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
 from app.redis import close_redis, get_redis
 from app.routers import (
     admin,
@@ -66,14 +70,16 @@ if _IS_PROD:
     )
 
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(CsrfMiddleware)
 app.add_middleware(RateLimitMiddleware, limit=settings.RATELIMIT_PER_MINUTE, window_seconds=60)
 
+# 쿠키 인증(allow_credentials=True)이므로 메서드/헤더는 실제 사용하는 것만 화이트리스트.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"],
 )
 
 # ── 에러 핸들러 ───────────────────────────────────

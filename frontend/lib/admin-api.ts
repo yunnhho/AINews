@@ -49,30 +49,66 @@ export interface AdminMetrics {
   daily_costs: { date: string; cost_usd: number }[]
 }
 
-async function adminFetch<T>(path: string, token: string, init?: RequestInit): Promise<T> {
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
+function csrfHeader(): Record<string, string> {
+  const csrf = readCookie('csrf_token')
+  return csrf ? { 'X-CSRF-Token': csrf } : {}
+}
+
+let refreshing: Promise<boolean> | null = null
+function tryRefresh(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: csrfHeader(),
+    })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshing = null
+      })
+  }
+  return refreshing
+}
+
+async function adminFetch<T>(path: string, init?: RequestInit, retried = false): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const method = (init?.method ?? 'GET').toUpperCase()
+  if (method !== 'GET') Object.assign(headers, csrfHeader())
+  // 인증은 HttpOnly 쿠키로 전달된다.
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers,
     cache: 'no-store',
+    credentials: 'include',
   })
+  // access 만료(401) 시 1회 refresh 후 재시도.
+  if (res.status === 401 && !retried && (await tryRefresh())) {
+    return adminFetch<T>(path, init, true)
+  }
   if (!res.ok) throw new Error(`${res.status}`)
   return res.json() as Promise<T>
 }
 
 export const adminApi = {
-  getMetrics: (token: string) => adminFetch<AdminMetrics>('/admin/metrics', token),
-  getBatches: (token: string) => adminFetch<{ items: BatchLog[] }>('/admin/batches', token),
-  getSourceHealth: (token: string) =>
-    adminFetch<{ items: SourceHealth[] }>('/admin/sources/health', token),
-  toggleSource: (sourceId: number, enabled: boolean, token: string) =>
-    adminFetch(`/admin/sources/${sourceId}`, token, {
+  getMetrics: () => adminFetch<AdminMetrics>('/admin/metrics'),
+  getBatches: () => adminFetch<{ items: BatchLog[] }>('/admin/batches'),
+  getSourceHealth: () => adminFetch<{ items: SourceHealth[] }>('/admin/sources/health'),
+  toggleSource: (sourceId: number, enabled: boolean) =>
+    adminFetch(`/admin/sources/${sourceId}`, {
       method: 'PATCH',
       body: JSON.stringify({ enabled }),
     }),
-  getTranslationQueue: (token: string) =>
-    adminFetch<{ items: TranslationItem[] }>('/admin/translation-queue', token),
-  reviewTranslation: (logId: number, action: 'approve' | 'reject', token: string) =>
-    adminFetch(`/admin/translation-queue/${logId}`, token, {
+  getTranslationQueue: () =>
+    adminFetch<{ items: TranslationItem[] }>('/admin/translation-queue'),
+  reviewTranslation: (logId: number, action: 'approve' | 'reject') =>
+    adminFetch(`/admin/translation-queue/${logId}`, {
       method: 'PATCH',
       body: JSON.stringify({ action }),
     }),

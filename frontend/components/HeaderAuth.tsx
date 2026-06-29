@@ -1,12 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/auth'
 import AuthModal from './AuthModal'
 
 export default function HeaderAuth() {
-  const { user, logout } = useAuthStore()
+  const { user, logout, refreshUser } = useAuthStore()
   const [showAuth, setShowAuth] = useState(false)
+
+  // 마운트 시 쿠키 세션의 실제 상태로 프로필을 동기화한다.
+  // csrf_token 쿠키(비-HttpOnly) 또는 영속화된 user가 있으면 세션 가능성이 있다고 보고만 호출 —
+  // 순수 게스트에게 불필요한 /auth/me 요청을 보내지 않는다.
+  useEffect(() => {
+    const hasSessionHint =
+      document.cookie.includes('csrf_token=') || useAuthStore.getState().user !== null
+    if (hasSessionHint) refreshUser()
+  }, [refreshUser])
 
   if (user) {
     return (

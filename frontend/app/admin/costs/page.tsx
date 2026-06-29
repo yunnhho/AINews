@@ -31,14 +31,14 @@ function BarChart({ data }: { data: { date: string; cost_usd: number }[] }) {
 }
 
 export default function CostsPage() {
-  const { token } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [data, setData] = useState<AdminMetrics | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!token) return
-    adminApi.getMetrics(token).then(setData).catch(() => {}).finally(() => setLoading(false))
-  }, [token])
+    if (!user) return
+    adminApi.getMetrics().then(setData).catch(() => {}).finally(() => setLoading(false))
+  }, [user])
 
   const budget = data?.monthly_budget_usd ?? 0
   const spent = data?.monthly_api_cost_usd ?? 0
