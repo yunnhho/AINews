@@ -13,6 +13,7 @@ from app.exceptions import (
 )
 from app.middleware import (
     CsrfMiddleware,
+    DemoModeMiddleware,
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
 )
@@ -70,6 +71,8 @@ if _IS_PROD:
     )
 
 app.add_middleware(SecurityHeadersMiddleware)
+# 데모 모드에서 쓰기 요청을 전역 차단(공개 라이브 데모 안전장치). CORS 안쪽에 위치.
+app.add_middleware(DemoModeMiddleware)
 app.add_middleware(CsrfMiddleware)
 app.add_middleware(RateLimitMiddleware, limit=settings.RATELIMIT_PER_MINUTE, window_seconds=60)
 

@@ -1,0 +1,5 @@
+# 로컬 전용 env가 Vercel 빌드에 섞이지 않도록 제외 (Vercel 프로젝트 env를 사용)
+.env.local
+.env*.local
+node_modules
+.next

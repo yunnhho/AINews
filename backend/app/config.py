@@ -71,6 +71,12 @@ class Settings(BaseSettings):
     ADMIN_USER_IDS: str = ""
     MONTHLY_BUDGET_USD: float = 100.0
 
+    # 데모 모드 — 공개 읽기전용 라이브 데모.
+    # true면 (1) 모든 쓰기 요청(POST/PATCH/PUT/DELETE)을 403으로 차단하고
+    # (2) Admin 대시보드 GET을 인증 없이 열어 준다(쓰기는 여전히 차단).
+    # 기본 false = 안전한 쪽. 파이프라인 비용 가드는 pipeline 측 DEMO_MODE가 담당.
+    DEMO_MODE: bool = False
+
     # Alerts
     ALERT_SLACK_WEBHOOK_URL: str = ""
     ALERT_EMAIL_TO: str = ""

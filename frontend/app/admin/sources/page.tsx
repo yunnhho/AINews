@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '@/stores/auth'
 import { adminApi, type SourceHealth } from '@/lib/admin-api'
+import { IS_DEMO } from '@/lib/demo'
 
 export default function SourcesPage() {
   const user = useAuthStore((s) => s.user)
@@ -12,12 +13,12 @@ export default function SourcesPage() {
   const [toggling, setToggling] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!user) return
+    if (!user && !IS_DEMO) return
     adminApi.getSourceHealth().then((r) => setSources(r.items)).catch(() => {}).finally(() => setLoading(false))
   }, [user])
 
   async function handleToggle(src: SourceHealth) {
-    if (!user || toggling !== null) return
+    if (IS_DEMO || !user || toggling !== null) return  // 데모: 쓰기 비활성
     setToggling(src.source_id)
     try {
       await adminApi.toggleSource(src.source_id, !src.enabled)
@@ -72,11 +73,11 @@ export default function SourcesPage() {
                   {/* 토글 */}
                   <button
                     onClick={() => handleToggle(src)}
-                    disabled={toggling === src.source_id}
+                    disabled={IS_DEMO || toggling === src.source_id}
                     className={clsx(
                       'relative inline-flex h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200',
                       src.enabled ? 'bg-blue-500' : 'bg-gray-300',
-                      toggling === src.source_id && 'opacity-50',
+                      (toggling === src.source_id || IS_DEMO) && 'opacity-50 cursor-not-allowed',
                     )}
                     aria-label={src.enabled ? '비활성화' : '활성화'}
                   >

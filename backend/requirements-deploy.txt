@@ -1,0 +1,21 @@
+# 읽기전용 데모 배포용 슬림 런타임 의존성 (Railway).
+# 무거운 ML 라이브러리(sentence-transformers/torch, scikit-learn)와 파이프라인 전용
+# 의존성(celery, feedparser, anthropic)은 제외 — API 읽기전용 서빙에는 불필요.
+# (번역검증·추천학습은 worker 몫이고, 데모는 seed 데이터로 동작)
+fastapi>=0.115,<0.116
+uvicorn[standard]>=0.32,<0.33
+sqlalchemy[asyncio]>=2.0.36,<2.1
+asyncpg>=0.30,<0.31
+alembic>=1.14,<1.15
+pydantic>=2.10,<3
+pydantic-settings>=2.6,<3
+redis[hiredis]>=5.2,<6
+# Bonsai 무료 티어가 OpenSearch만 제공 → opensearch-py 사용(ES 8.x 클라이언트는 OpenSearch 거부).
+opensearch-py>=2.4,<3
+aiohttp>=3.9,<4
+authlib>=1.3.2,<2
+httpx>=0.27,<0.28
+python-jose[cryptography]>=3.3,<4
+passlib[bcrypt]>=1.7.4,<2
+python-multipart>=0.0.19
+numpy>=1.26,<2.3

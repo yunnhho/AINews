@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '@/stores/auth'
+import { IS_DEMO } from '@/lib/demo'
 
 const NAV = [
   { href: '/admin', label: '대시보드', icon: '📊' },
@@ -34,11 +35,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [refreshUser])
 
   useEffect(() => {
-    if (hydrated && !user) router.replace('/')
+    // 데모 모드에서는 로그인 없이 읽기전용으로 대시보드를 공개한다.
+    if (!IS_DEMO && hydrated && !user) router.replace('/')
   }, [hydrated, user, router])
 
-  if (!hydrated) return null
-  if (!user) return null
+  if (!IS_DEMO) {
+    if (!hydrated) return null
+    if (!user) return null
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -68,6 +72,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* 메인 — 루트 레이아웃의 <main> 안에 중첩되므로 section 사용 */}
       <section className="flex-1 pt-14 overflow-auto">
+        {IS_DEMO && (
+          <div className="bg-amber-50 border-b border-amber-200 text-amber-800 text-sm px-6 py-2 flex items-center gap-2">
+            <span>🔒</span>
+            <span>데모 · 읽기 전용 — 쓰기 작업은 비활성화되어 있습니다.</span>
+          </div>
+        )}
         <div className="max-w-5xl mx-auto p-6">{children}</div>
       </section>
     </div>

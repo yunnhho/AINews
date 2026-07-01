@@ -4,8 +4,8 @@
       "analyzer": {
         "korean": {
           "type": "custom",
-          "tokenizer": "nori_tokenizer",
-          "filter": ["nori_part_of_speech", "lowercase"]
+          "tokenizer": "standard",
+          "filter": ["cjk_width", "lowercase", "cjk_bigram"]
         }
       }
     }

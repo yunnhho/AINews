@@ -93,6 +93,19 @@ def _run_pipeline(batch_id: str, scheduled_hour: int = 0) -> dict:
     deduplicated_count = 0
 
     # ① 소스별 수집
+    # 데모 모드: 외부 소스를 호출하지 않고 고정 스냅샷에서 수집(오프라인·무비용·결정적).
+    from pipeline.ai.demo_client import is_demo_mode
+    if is_demo_mode():
+        from pipeline.sources.demo_snapshot import collect_demo_snapshot
+        raw_items, snapshot_counts = collect_demo_snapshot()
+        collected_by_group.update(snapshot_counts)
+        total_collected = sum(collected_by_group.values())
+        logger.info(f"[{batch_id}] (DEMO) 스냅샷 수집: {collected_by_group} 총 {total_collected}건")
+        return _process_items(
+            batch_id, raw_items, collected_by_group, deduplicated_count,
+            published_by_type, failed_count, api_tokens_used, api_cost_usd,
+        )
+
     try:
         group_a = collect_group_a()
         collected_by_group["A"] = len(group_a)
@@ -168,6 +181,24 @@ def _run_pipeline(batch_id: str, scheduled_hour: int = 0) -> dict:
     raw_items = group_a + group_b1 + group_b2 + group_b3 + group_b4 + group_c1 + group_c2 + group_d1 + group_d2
     total_collected = sum(collected_by_group.values())
     logger.info(f"[{batch_id}] 수집 완료: {collected_by_group} 총 {total_collected}건")
+
+    return _process_items(
+        batch_id, raw_items, collected_by_group, deduplicated_count,
+        published_by_type, failed_count, api_tokens_used, api_cost_usd,
+    )
+
+
+def _process_items(
+    batch_id: str,
+    raw_items: list,
+    collected_by_group: dict[str, int],
+    deduplicated_count: int,
+    published_by_type: dict[str, int],
+    failed_count: int,
+    api_tokens_used: int,
+    api_cost_usd: float,
+) -> dict:
+    """② 중복 제거 → ③ AI 처리 → 발행 (수집 이후 공통 단계)."""
 
     # ② 중복 필터링 (P2-5)
     from pipeline.filters.dedup import dedup

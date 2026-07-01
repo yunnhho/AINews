@@ -1,27 +1,26 @@
 """NEWS 카드 처리 — Claude API 요약·분류 (한국어 출력)."""
 import json
 import logging
-import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-import anthropic
-
 from pipeline.adapters.base import RawItem
+from pipeline.ai.demo_client import get_client as _demo_get_client
 from pipeline.ai.prompts import NEWS_SYSTEM, NEWS_USER
 
 _MODEL = "claude-haiku-4-5-20251001"
-_client: anthropic.Anthropic | None = None
+_client = None
 logger = logging.getLogger(__name__)
 
 _VALID_CATEGORIES = {"CODING", "DESIGN", "GENERAL"}
 _VALID_DIFFICULTIES = {"BEGINNER", "INTERMEDIATE", "ADVANCED"}
 
 
-def _get_client() -> anthropic.Anthropic:
+def _get_client():
+    # 데모 모드/키 미설정 시 재생 클라이언트로 대체(비용 이중 가드).
     global _client
     if _client is None:
-        _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+        _client = _demo_get_client()
     return _client
 
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '@/stores/auth'
 import { adminApi, type BatchLog } from '@/lib/admin-api'
+import { IS_DEMO } from '@/lib/demo'
 
 const STATUS_STYLE: Record<BatchLog['status'], string> = {
   COMPLETED: 'bg-green-100 text-green-700',
@@ -27,7 +28,7 @@ export default function BatchesPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) return
+    if (!user && !IS_DEMO) return
     adminApi.getBatches().then((r) => setBatches(r.items)).catch(() => {}).finally(() => setLoading(false))
   }, [user])
 

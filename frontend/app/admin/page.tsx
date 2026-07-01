@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/auth'
 import { adminApi, type AdminMetrics } from '@/lib/admin-api'
+import { IS_DEMO } from '@/lib/demo'
 
 function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -20,7 +21,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    if (!user) return
+    if (!user && !IS_DEMO) return
     adminApi.getMetrics().then(setData).catch(() => setError(true))
   }, [user])
 

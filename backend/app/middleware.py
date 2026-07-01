@@ -79,6 +79,29 @@ class CsrfMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class DemoModeMiddleware(BaseHTTPMiddleware):
+    """데모 모드 — 공개 라이브 데모를 읽기전용으로 강제한다.
+
+    DEMO_MODE=true일 때 모든 unsafe 메서드(POST/PATCH/PUT/DELETE)를 403으로 막는다.
+    (Admin 대시보드 GET은 dependencies.get_admin_user가 인증 없이 열어주지만,
+    쓰기 자체가 여기서 전부 차단되므로 공개돼도 안전하다.)
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        if settings.DEMO_MODE and request.method not in _SAFE_METHODS:
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "error": {
+                        "code": "DEMO_READONLY",
+                        "message": "데모 모드에서는 쓰기 작업이 비활성화되어 있습니다.",
+                        "status": 403,
+                    }
+                },
+            )
+        return await call_next(request)
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """IP 기준 고정 윈도우 레이트리밋 (Redis). Redis 장애 시 통과(fail-open)."""
 

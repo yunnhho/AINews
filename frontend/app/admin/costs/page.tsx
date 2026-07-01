@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/auth'
 import { adminApi, type AdminMetrics } from '@/lib/admin-api'
+import { IS_DEMO } from '@/lib/demo'
 
 function BarChart({ data }: { data: { date: string; cost_usd: number }[] }) {
   const max = Math.max(...data.map((d) => d.cost_usd), 0.001)
@@ -36,7 +37,7 @@ export default function CostsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) return
+    if (!user && !IS_DEMO) return
     adminApi.getMetrics().then(setData).catch(() => {}).finally(() => setLoading(false))
   }, [user])
 

@@ -1,18 +1,16 @@
 """TECHNIQUE 카드 처리 — Claude API 4단 구조 생성."""
 import json
 import logging
-import os
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-import anthropic
-
 from pipeline.adapters.base import RawItem
+from pipeline.ai.demo_client import get_client as _demo_get_client
 from pipeline.ai.prompts import TECHNIQUE_SYSTEM, TECHNIQUE_USER
 
 _MODEL = "claude-haiku-4-5-20251001"
-_client: anthropic.Anthropic | None = None
+_client = None
 logger = logging.getLogger(__name__)
 
 _VALID_CATEGORIES = {"CODING", "DESIGN", "GENERAL"}
@@ -20,10 +18,11 @@ _VALID_DIFFICULTIES = {"BEGINNER", "INTERMEDIATE", "ADVANCED"}
 _CODE_BLOCK_RE = re.compile(r"```[\w]*\n(.*?)```", re.DOTALL)
 
 
-def _get_client() -> anthropic.Anthropic:
+def _get_client():
+    # 데모 모드/키 미설정 시 재생 클라이언트로 대체(비용 이중 가드).
     global _client
     if _client is None:
-        _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+        _client = _demo_get_client()
     return _client
 
 

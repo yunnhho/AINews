@@ -1,8 +1,15 @@
-"""Elasticsearch 쿼리 래퍼 + 인덱스 설정."""
+"""검색 쿼리 래퍼 + 인덱스 설정.
+
+클라이언트는 opensearch-py(AsyncOpenSearch)를 쓴다. Bonsai 무료 티어가 OpenSearch만
+제공하고, elasticsearch 8.x 클라이언트는 OpenSearch 접속을 product-check로 거부하기
+때문. opensearch-py는 OpenSearch·Elasticsearch 양쪽과 호환된다.
+한국어 분석기는 플러그인 불필요한 cjk(바이그램) 기반 커스텀 analyzer(es/mappings/cards.json).
+"""
 import json
 from pathlib import Path
 
-from elasticsearch import AsyncElasticsearch, NotFoundError
+from opensearchpy import AsyncOpenSearch
+from opensearchpy.exceptions import NotFoundError
 
 from app.config import settings
 
@@ -13,8 +20,9 @@ _MAPPINGS_FILE = Path(__file__).resolve().parent.parent.parent / "es" / "mapping
 _MAPPING = json.loads(_MAPPINGS_FILE.read_text())
 
 
-def _client() -> AsyncElasticsearch:
-    return AsyncElasticsearch(settings.ELASTICSEARCH_URL)
+def _client() -> AsyncOpenSearch:
+    # URL(https·인증정보 포함)을 그대로 파싱. Bonsai는 유효 인증서라 verify 기본값 OK.
+    return AsyncOpenSearch(hosts=[settings.ELASTICSEARCH_URL])
 
 
 async def setup_index() -> None:
@@ -23,11 +31,7 @@ async def setup_index() -> None:
     try:
         exists = await es.indices.exists(index=INDEX_NAME)
         if not exists:
-            await es.indices.create(
-                index=INDEX_NAME,
-                settings=_MAPPING["settings"],
-                mappings=_MAPPING["mappings"],
-            )
+            await es.indices.create(index=INDEX_NAME, body=_MAPPING)
     finally:
         await es.close()
 
@@ -51,30 +55,32 @@ async def search_cards(
     try:
         result = await es.search(
             index=INDEX_NAME,
-            query={
-                "bool": {
-                    "must": [
-                        {
-                            "multi_match": {
-                                "query": q,
-                                # 한국어(nori) + 영어(english) 서브필드 + 태그(키워드) 동시 검색
-                                "fields": [
-                                    "title^3", "title.en^3",
-                                    "summary^2", "summary.en^2",
-                                    "problem", "problem.en",
-                                    "idea", "idea.en",
-                                    "tags.text^2",
-                                ],
-                                "type": "best_fields",
-                                "operator": "or",
+            body={
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "multi_match": {
+                                    "query": q,
+                                    # 한국어(cjk) + 영어(english) 서브필드 + 태그(키워드) 동시 검색
+                                    "fields": [
+                                        "title^3", "title.en^3",
+                                        "summary^2", "summary.en^2",
+                                        "problem", "problem.en",
+                                        "idea", "idea.en",
+                                        "tags.text^2",
+                                    ],
+                                    "type": "best_fields",
+                                    "operator": "or",
+                                }
                             }
-                        }
-                    ],
-                    "filter": filters,
-                }
+                        ],
+                        "filter": filters,
+                    }
+                },
+                # 관련도 우선, 동점이면 최신순
+                "sort": ["_score", {"published_at": "desc"}],
             },
-            # 관련도 우선, 동점이면 최신순
-            sort=["_score", {"published_at": "desc"}],
             from_=offset,
             size=limit,
         )
@@ -123,10 +129,10 @@ async def _hydrate_cards_from_db(ordered_ids: list[int], db, current_user) -> li
 
 
 async def index_card(doc: dict) -> None:
-    """카드 문서 1건을 Elasticsearch에 색인."""
+    """카드 문서 1건을 색인."""
     es = _client()
     try:
-        await es.index(index=INDEX_NAME, id=str(doc["id"]), document=doc)
+        await es.index(index=INDEX_NAME, id=str(doc["id"]), body=doc)
     finally:
         await es.close()
 

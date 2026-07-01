@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '@/stores/auth'
 import { adminApi, type TranslationItem } from '@/lib/admin-api'
+import { IS_DEMO } from '@/lib/demo'
 
 export default function TranslationPage() {
   const user = useAuthStore((s) => s.user)
@@ -12,12 +13,12 @@ export default function TranslationPage() {
   const [expanded, setExpanded] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!user) return
+    if (!user && !IS_DEMO) return
     adminApi.getTranslationQueue().then((r) => setItems(r.items)).catch(() => {}).finally(() => setLoading(false))
   }, [user])
 
   async function handleReview(logId: number, action: 'approve' | 'reject') {
-    if (!user) return
+    if (IS_DEMO || !user) return  // 데모: 쓰기 비활성
     try {
       await adminApi.reviewTranslation(logId, action)
       setItems((prev) =>
@@ -95,13 +96,15 @@ export default function TranslationPage() {
                     <div className="flex gap-2 mt-3">
                       <button
                         onClick={() => handleReview(item.id, 'approve')}
-                        className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                        disabled={IS_DEMO}
+                        className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-100"
                       >
                         ✅ 통과
                       </button>
                       <button
                         onClick={() => handleReview(item.id, 'reject')}
-                        className="px-3 py-1.5 text-xs font-medium bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                        disabled={IS_DEMO}
+                        className="px-3 py-1.5 text-xs font-medium bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-100"
                       >
                         🗑️ 삭제
                       </button>

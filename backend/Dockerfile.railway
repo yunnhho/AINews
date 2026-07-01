@@ -1,0 +1,19 @@
+# 읽기전용 데모 배포용 슬림 이미지 (Railway).
+# 기존 backend/Dockerfile(poetry, ~2.4GB)은 dev/full 용도로 그대로 두고,
+# 배포는 이 슬림 이미지(~300-400MB)를 쓴다.
+FROM python:3.12-slim
+
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+# 대부분 manylinux 휠로 설치되므로 컴파일러 불필요.
+COPY requirements-deploy.txt ./
+RUN pip install --no-cache-dir -r requirements-deploy.txt
+
+COPY . .
+
+# Railway가 $PORT를 주입한다. 시작 시 마이그레이션 후 서빙.
+# (seed는 1회성이라 여기 넣지 않고 배포 후 `railway run python -m scripts.seed_demo`로 실행)
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

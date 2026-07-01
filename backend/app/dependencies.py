@@ -62,9 +62,27 @@ async def optional_user(
     return await _get_user_from_token(authorization, access_cookie, db, required=False)
 
 
+def _demo_admin() -> User:
+    """데모 모드용 합성 관리자 — DB에 저장되지 않는 읽기전용 신원.
+
+    Admin 엔드포인트는 이 객체의 필드를 사용하지 않고 인가 통과 표식으로만 쓴다.
+    쓰기 요청은 DemoModeMiddleware가 전역 차단하므로 공개돼도 안전하다.
+    """
+    u = User()
+    u.id = 0
+    return u
+
+
 async def get_admin_user(
-    user: User = Depends(get_current_user),
+    authorization: str | None = Header(default=None),
+    access_cookie: str | None = Cookie(default=None, alias="access_token"),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
+    # 데모 모드: 인증 없이 Admin GET을 열어 준다(쓰기는 미들웨어가 차단).
+    if settings.DEMO_MODE:
+        return _demo_admin()
+    user = await _get_user_from_token(authorization, access_cookie, db, required=True)
+    assert user is not None
     if user.id not in settings.admin_user_ids_list:
         raise ForbiddenError()
     return user
