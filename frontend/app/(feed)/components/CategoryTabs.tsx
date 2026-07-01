@@ -27,7 +27,7 @@ export default function CategoryTabs({ active }: Props) {
   }
 
   return (
-    <div className="flex gap-6 border-b border-ink overflow-x-auto">
+    <div className="flex gap-6 border-b border-ink overflow-x-auto overflow-y-hidden">
       {TABS.map(({ label, value }) => (
         <button
           key={value}
