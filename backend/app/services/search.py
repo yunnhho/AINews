@@ -128,6 +128,36 @@ async def _hydrate_cards_from_db(ordered_ids: list[int], db, current_user) -> li
     ]
 
 
+def build_card_doc(card) -> dict:
+    """Card ORM → 검색 인덱스 문서. 색인 스키마의 단일 출처(파이프라인·Admin 공용)."""
+    from app.models.card import CardType
+
+    doc: dict = {
+        "id": card.id,
+        "card_type": card.card_type.value,
+        "category": card.category.value,
+        "difficulty": card.difficulty.value,
+        "title": card.title,
+        "summary": card.summary,
+        "source_url": card.source_url,
+        "source_name": card.source_name,
+        "like_count": card.like_count,
+        "published_at": card.published_at.isoformat(),
+        "tags": [t.name for t in (card.tags or [])],
+    }
+    if card.card_type == CardType.NEWS:
+        doc["key_points"] = card.key_points or []
+    else:
+        doc.update(
+            problem=card.problem,
+            idea=card.idea,
+            code_snippet=card.code_snippet,
+            caveats=card.caveats or [],
+            prerequisites=card.prerequisites,
+        )
+    return doc
+
+
 async def index_card(doc: dict) -> None:
     """카드 문서 1건을 색인."""
     es = _client()

@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.exceptions import NotFoundError
 from app.models.batch import BatchLog, BatchStatus, SourceHealth, TranslationLog
-from app.models.card import Card, CardType
+from app.models.card import Card
 from app.services import search as search_svc
 
 
@@ -129,7 +129,7 @@ async def handle_translation_review(db: AsyncSession, log_id: int, action: str) 
         await db.commit()
         if card is not None:
             try:
-                await search_svc.index_card(_card_to_es_doc(card))
+                await search_svc.index_card(search_svc.build_card_doc(card))
             except Exception:
                 pass  # 색인 실패해도 발행 자체는 유지
         return {"status": "approved", "id": log_id}
@@ -169,34 +169,6 @@ async def get_daily_costs(db: AsyncSession) -> dict:
             for r in rows
         ]
     }
-
-
-def _card_to_es_doc(card: Card) -> dict:
-    """Card ORM → Elasticsearch 문서 (publisher._build_es_doc와 동일 스키마)."""
-    doc: dict = {
-        "id": card.id,
-        "card_type": card.card_type.value,
-        "category": card.category.value,
-        "difficulty": card.difficulty.value,
-        "title": card.title,
-        "summary": card.summary,
-        "source_url": card.source_url,
-        "source_name": card.source_name,
-        "like_count": card.like_count,
-        "published_at": card.published_at.isoformat(),
-        "tags": [t.name for t in (card.tags or [])],
-    }
-    if card.card_type == CardType.NEWS:
-        doc["key_points"] = card.key_points or []
-    else:
-        doc.update(
-            problem=card.problem,
-            idea=card.idea,
-            code_snippet=card.code_snippet,
-            caveats=card.caveats or [],
-            prerequisites=card.prerequisites,
-        )
-    return doc
 
 
 def _batch_log_dict(b: BatchLog) -> dict:

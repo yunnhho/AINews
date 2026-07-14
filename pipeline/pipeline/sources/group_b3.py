@@ -1,16 +1,12 @@
 """그룹 B-3 — Awesome-* 리스트 README.md 커밋 diff로 신규 항목 감지."""
 import os
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import httpx
-from celery.utils.log import get_task_logger
 
 from pipeline.adapters.base import RawItem, SourceGroup
-from pipeline.models import source_health as health_svc
+from pipeline.sources.common import collect_sources
 
-logger = get_task_logger(__name__)
-
-_WINDOW_HOURS = 6.5
 _GITHUB_API = "https://api.github.com"
 
 _B3_REPOS: list[dict] = [
@@ -76,28 +72,13 @@ def _fetch_readme_additions(repo: str, since: datetime, token: str) -> list[str]
     return added_lines
 
 
-def collect_group_b3() -> list[RawItem]:
-    """B-3 Awesome 리스트 README 신규 항목 수집."""
-    since = datetime.now(UTC) - timedelta(hours=_WINDOW_HOURS)
-    disabled = health_svc.run_sync(health_svc.get_disabled_sources())
-    token = os.getenv("GITHUB_TOKEN", "")
-    all_items: list[RawItem] = []
-
-    for src in _B3_REPOS:
-        repo = src["repo"]
-        name = src["name"]
-        if name in disabled:
-            logger.info("[Group B-3] %s: 비활성화됨 — 스킵", name)
-            continue
-        try:
-            added_lines = _fetch_readme_additions(repo, since, token)
-            health_svc.run_sync(health_svc.record_success(name, "GITHUB"))
-
-            if not added_lines:
-                logger.info("[Group B-3] %s: 신규 항목 없음", name)
-                continue
-
-            item = RawItem(
+def _make_fetcher(repo: str, name: str, token: str):
+    def fetch(since: datetime) -> list[RawItem]:
+        added_lines = _fetch_readme_additions(repo, since, token)
+        if not added_lines:
+            return []
+        return [
+            RawItem(
                 url=f"https://github.com/{repo}",
                 title=f"{name} — {len(added_lines)}개 신규 항목",
                 content="\n".join(added_lines),
@@ -107,11 +88,15 @@ def collect_group_b3() -> list[RawItem]:
                 original_lang="en",
                 extra={"repo": repo, "new_entry_count": len(added_lines)},
             )
-            all_items.append(item)
-            logger.info("[Group B-3] %s: %d개 신규 항목", name, len(added_lines))
-        except Exception as exc:
-            logger.warning("[Group B-3] %s 실패: %s", name, exc)
-            health_svc.run_sync(health_svc.record_failure(name, "GITHUB", str(exc)))
+        ]
 
-    logger.info("[Group B-3] 수집 완료: 총 %d건", len(all_items))
-    return all_items
+    return fetch
+
+
+def collect_group_b3() -> list[RawItem]:
+    """B-3 Awesome 리스트 README 신규 항목 수집."""
+    token = os.getenv("GITHUB_TOKEN", "")
+    fetchers = [
+        (src["name"], _make_fetcher(src["repo"], src["name"], token)) for src in _B3_REPOS
+    ]
+    return collect_sources("Group B-3", "GITHUB", fetchers)

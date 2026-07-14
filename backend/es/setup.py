@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Elasticsearch 인덱스 생성 + 기존 카드 전체 재인덱싱 스크립트.
+검색 인덱스 생성 + 기존 카드 전체 재인덱싱 스크립트.
 
 실행 (backend/ 디렉터리에서):
     python es/setup.py
@@ -12,74 +12,41 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from elasticsearch import AsyncElasticsearch
-from elasticsearch.helpers import async_bulk
+from opensearchpy import AsyncOpenSearch
+from opensearchpy.helpers import async_bulk
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.models.card import Card, CardType
+from app.models.card import Card
+from app.services.search import INDEX_NAME, build_card_doc
 
-INDEX_NAME = "cards"
 MAPPINGS_FILE = Path(__file__).parent / "mappings" / "cards.json"
-
-
-def _build_action(card: Card) -> dict:
-    tags = [t.name for t in (card.tags or [])]
-    doc: dict = {
-        "_index": INDEX_NAME,
-        "_id": str(card.id),
-        "id": card.id,
-        "card_type": card.card_type.value,
-        "category": card.category.value,
-        "difficulty": card.difficulty.value,
-        "title": card.title,
-        "summary": card.summary,
-        "source_url": card.source_url,
-        "source_name": card.source_name,
-        "like_count": card.like_count,
-        "published_at": card.published_at.isoformat(),
-        "tags": tags,
-    }
-    if card.card_type == CardType.NEWS:
-        doc["key_points"] = card.key_points or []
-    else:
-        doc.update(
-            problem=card.problem,
-            idea=card.idea,
-            code_snippet=card.code_snippet,
-            caveats=card.caveats or [],
-            prerequisites=card.prerequisites,
-        )
-    return doc
 
 
 async def main() -> None:
     mapping = json.loads(MAPPINGS_FILE.read_text())
-    es = AsyncElasticsearch(settings.ELASTICSEARCH_URL)
+    es = AsyncOpenSearch(hosts=[settings.ELASTICSEARCH_URL])
 
     try:
         # 1. 인덱스 생성 (기존 인덱스 재생성)
-        exists = await es.indices.exists(index=INDEX_NAME)
-        if exists:
+        if await es.indices.exists(index=INDEX_NAME):
             print(f"인덱스 '{INDEX_NAME}' 이미 존재 — 삭제 후 재생성합니다.")
             await es.indices.delete(index=INDEX_NAME)
 
-        await es.indices.create(
-            index=INDEX_NAME,
-            settings=mapping["settings"],
-            mappings=mapping["mappings"],
-        )
+        await es.indices.create(index=INDEX_NAME, body=mapping)
         print(f"인덱스 '{INDEX_NAME}' 생성 완료.")
 
         # 2. DB에서 전체 카드 조회
         engine = create_async_engine(settings.DATABASE_URL)
-        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with async_session() as session:
             # 발행된(is_published) 카드만 색인 — 번역 검토 보류 초안은 검색 노출 금지
-            result = await session.execute(select(Card).where(Card.is_published.is_(True)))
+            result = await session.execute(
+                select(Card).options(selectinload(Card.tags)).where(Card.is_published.is_(True))
+            )
             cards = result.scalars().all()
 
         await engine.dispose()
@@ -87,7 +54,9 @@ async def main() -> None:
 
         # 3. Bulk 인덱싱
         if cards:
-            actions = [_build_action(c) for c in cards]
+            actions = [
+                {"_index": INDEX_NAME, "_id": str(c.id), **build_card_doc(c)} for c in cards
+            ]
             success, errors = await async_bulk(es, actions, raise_on_error=False)
             print(f"성공: {success}건 / 오류: {len(errors)}건")
         else:

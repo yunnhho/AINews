@@ -1,27 +1,14 @@
 """NEWS 카드 처리 — Claude API 요약·분류 (한국어 출력)."""
-import json
 import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from pipeline.adapters.base import RawItem
-from pipeline.ai.demo_client import get_client as _demo_get_client
+from pipeline.ai.common import MODEL, VALID_CATEGORIES, VALID_DIFFICULTIES, parse_json_response
+from pipeline.ai.demo_client import get_client
 from pipeline.ai.prompts import NEWS_SYSTEM, NEWS_USER
 
-_MODEL = "claude-haiku-4-5-20251001"
-_client = None
 logger = logging.getLogger(__name__)
-
-_VALID_CATEGORIES = {"CODING", "DESIGN", "GENERAL"}
-_VALID_DIFFICULTIES = {"BEGINNER", "INTERMEDIATE", "ADVANCED"}
-
-
-def _get_client():
-    # 데모 모드/키 미설정 시 재생 클라이언트로 대체(비용 이중 가드).
-    global _client
-    if _client is None:
-        _client = _demo_get_client()
-    return _client
 
 
 @dataclass
@@ -42,28 +29,12 @@ class NewsCardData:
     output_tokens: int = 0
 
 
-def _parse_response(raw: str) -> dict | None:
-    """JSON 파싱 — 불완전한 응답에서도 JSON 블록 추출 시도."""
-    raw = raw.strip()
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        start = raw.find("{")
-        end = raw.rfind("}") + 1
-        if start >= 0 and end > start:
-            try:
-                return json.loads(raw[start:end])
-            except json.JSONDecodeError:
-                pass
-    return None
-
-
 def process_news(item: RawItem) -> NewsCardData | None:
     """NEWS 카드 데이터 생성. 실패 시 None 반환."""
     try:
         content_preview = item.content[:3000]
-        msg = _get_client().messages.create(
-            model=_MODEL,
+        msg = get_client().messages.create(
+            model=MODEL,
             max_tokens=1024,
             system=NEWS_SYSTEM,
             messages=[
@@ -76,7 +47,7 @@ def process_news(item: RawItem) -> NewsCardData | None:
         in_tokens = msg.usage.input_tokens
         out_tokens = msg.usage.output_tokens
 
-        data = _parse_response(msg.content[0].text)
+        data = parse_json_response(msg.content[0].text)
         if data is None:
             return None
 
@@ -89,9 +60,9 @@ def process_news(item: RawItem) -> NewsCardData | None:
 
         if not summary or len(key_points) < 1:
             return None
-        if category not in _VALID_CATEGORIES:
+        if category not in VALID_CATEGORIES:
             category = "GENERAL"
-        if difficulty not in _VALID_DIFFICULTIES:
+        if difficulty not in VALID_DIFFICULTIES:
             difficulty = "BEGINNER"
 
         return NewsCardData(

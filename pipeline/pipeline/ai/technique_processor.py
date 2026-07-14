@@ -1,29 +1,17 @@
 """TECHNIQUE 카드 처리 — Claude API 4단 구조 생성."""
-import json
 import logging
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from pipeline.adapters.base import RawItem
-from pipeline.ai.demo_client import get_client as _demo_get_client
+from pipeline.ai.common import MODEL, VALID_CATEGORIES, VALID_DIFFICULTIES, parse_json_response
+from pipeline.ai.demo_client import get_client
 from pipeline.ai.prompts import TECHNIQUE_SYSTEM, TECHNIQUE_USER
 
-_MODEL = "claude-haiku-4-5-20251001"
-_client = None
 logger = logging.getLogger(__name__)
 
-_VALID_CATEGORIES = {"CODING", "DESIGN", "GENERAL"}
-_VALID_DIFFICULTIES = {"BEGINNER", "INTERMEDIATE", "ADVANCED"}
 _CODE_BLOCK_RE = re.compile(r"```[\w]*\n(.*?)```", re.DOTALL)
-
-
-def _get_client():
-    # 데모 모드/키 미설정 시 재생 클라이언트로 대체(비용 이중 가드).
-    global _client
-    if _client is None:
-        _client = _demo_get_client()
-    return _client
 
 
 @dataclass
@@ -56,27 +44,12 @@ def _extract_code_snippet(content: str) -> str | None:
     return max(matches, key=len).strip() or None
 
 
-def _parse_response(raw: str) -> dict | None:
-    raw = raw.strip()
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        start = raw.find("{")
-        end = raw.rfind("}") + 1
-        if start >= 0 and end > start:
-            try:
-                return json.loads(raw[start:end])
-            except json.JSONDecodeError:
-                pass
-    return None
-
-
 def process_technique(item: RawItem) -> TechniqueCardData | None:
     """TECHNIQUE 카드 데이터 생성. 실패 시 None 반환."""
     try:
         content_preview = item.content[:3000]
-        msg = _get_client().messages.create(
-            model=_MODEL,
+        msg = get_client().messages.create(
+            model=MODEL,
             max_tokens=1500,
             system=TECHNIQUE_SYSTEM,
             messages=[
@@ -89,7 +62,7 @@ def process_technique(item: RawItem) -> TechniqueCardData | None:
         in_tokens = msg.usage.input_tokens
         out_tokens = msg.usage.output_tokens
 
-        data = _parse_response(msg.content[0].text)
+        data = parse_json_response(msg.content[0].text)
         if data is None:
             return None
 
@@ -108,9 +81,9 @@ def process_technique(item: RawItem) -> TechniqueCardData | None:
             return None
         if not summary:
             summary = idea[:200]
-        if category not in _VALID_CATEGORIES:
+        if category not in VALID_CATEGORIES:
             category = "CODING"
-        if difficulty not in _VALID_DIFFICULTIES:
+        if difficulty not in VALID_DIFFICULTIES:
             difficulty = "INTERMEDIATE"
 
         code_snippet = _extract_code_snippet(item.content)

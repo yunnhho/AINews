@@ -1,5 +1,6 @@
 """ALS 협업 필터링 모델 학습 Celery 태스크."""
 import asyncio
+import os
 import pickle
 import time
 
@@ -8,25 +9,17 @@ import redis.asyncio as aioredis
 from celery.utils.log import get_task_logger
 from scipy.sparse import csr_matrix
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
 
 from pipeline.celery_app import app
+from pipeline.db import SessionLocal as _SessionLocal
 
 logger = get_task_logger(__name__)
 
-_DATABASE_URL = __import__("os").getenv(
-    "DATABASE_URL", "postgresql+asyncpg://aipulse:aipulse@postgres:5432/aipulse"
-)
-_REDIS_URL = __import__("os").getenv("REDIS_URL", "redis://redis:6379/0")
+_REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
 CF_MODEL_KEY = "cf:model_data"
 _LIKE_WEIGHT = 1.0
 _BOOKMARK_WEIGHT = 2.0
-
-# asyncio.run()이 호출마다 새 이벤트 루프를 생성하므로 NullPool로 커넥션 재사용을 막는다.
-_engine = create_async_engine(_DATABASE_URL, poolclass=NullPool)
-_SessionLocal = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 @app.task(

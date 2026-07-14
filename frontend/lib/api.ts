@@ -36,14 +36,14 @@ function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null
 }
 
-function csrfHeader(): Record<string, string> {
+export function csrfHeader(): Record<string, string> {
   const csrf = readCookie('csrf_token')
   return csrf ? { 'X-CSRF-Token': csrf } : {}
 }
 
 // access token이 만료되면 refresh 쿠키로 조용히 재발급한다. 동시 401을 한 번으로 합친다.
 let refreshing: Promise<boolean> | null = null
-function tryRefresh(): Promise<boolean> {
+export function tryRefresh(): Promise<boolean> {
   if (!refreshing) {
     refreshing = fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',

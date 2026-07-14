@@ -1,20 +1,14 @@
-import asyncio
-import os
 from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import update
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
+from sqlalchemy.ext.asyncio import AsyncSession
 
-database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://aipulse:aipulse@postgres:5432/aipulse")
-# run_sync()가 호출마다 새 이벤트 루프를 생성하므로 NullPool로 커넥션 재사용을 막는다.
-_engine = create_async_engine(database_url, poolclass=NullPool)
-_SessionLocal = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+from pipeline.db import SessionLocal, run_sync  # noqa: F401 — run_sync는 호출부 재수출용
 
 
 def _get_session() -> AsyncSession:
-    return _SessionLocal()
+    return SessionLocal()
 
 
 async def create_batch_log(batch_id: str, scheduled_at: datetime) -> int:
@@ -112,12 +106,3 @@ async def mark_batch_failed(batch_id: str, error: str) -> None:
             )
         )
         await session.commit()
-
-
-def run_sync(coro):
-    """Celery 태스크(동기)에서 async 함수 실행."""
-    loop = asyncio.new_event_loop()
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()

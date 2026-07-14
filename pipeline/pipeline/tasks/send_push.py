@@ -1,19 +1,12 @@
 """배치 완료 후 Expo Push 알림 발송 태스크."""
 import asyncio
-import os
 
 from celery.utils.log import get_task_logger
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
 
 from pipeline.celery_app import app
+from pipeline.db import SessionLocal as _SessionLocal
 
 logger = get_task_logger(__name__)
-
-_database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://aipulse:aipulse@postgres:5432/aipulse")
-# asyncio.run()이 호출마다 새 이벤트 루프를 생성하므로 NullPool로 커넥션 재사용을 막는다.
-_engine = create_async_engine(_database_url, poolclass=NullPool)
-_SessionLocal = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 @app.task(

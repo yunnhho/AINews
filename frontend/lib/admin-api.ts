@@ -1,3 +1,5 @@
+import { csrfHeader, tryRefresh } from '@/lib/api'
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/v1'
 
 export interface BatchLog {
@@ -47,34 +49,6 @@ export interface AdminMetrics {
   monthly_budget_usd: number
   alert_sources: SourceHealth[]
   daily_costs: { date: string; cost_usd: number }[]
-}
-
-function readCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null
-  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
-  return match ? decodeURIComponent(match[1]) : null
-}
-
-function csrfHeader(): Record<string, string> {
-  const csrf = readCookie('csrf_token')
-  return csrf ? { 'X-CSRF-Token': csrf } : {}
-}
-
-let refreshing: Promise<boolean> | null = null
-function tryRefresh(): Promise<boolean> {
-  if (!refreshing) {
-    refreshing = fetch(`${API_BASE}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: csrfHeader(),
-    })
-      .then((r) => r.ok)
-      .catch(() => false)
-      .finally(() => {
-        refreshing = null
-      })
-  }
-  return refreshing
 }
 
 async function adminFetch<T>(path: string, init?: RequestInit, retried = false): Promise<T> {

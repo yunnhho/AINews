@@ -133,9 +133,16 @@ class ReplayClient:
         self.messages = _ReplayMessages()
 
 
+_client = None
+
+
 def get_client():
-    """데모/키미설정이면 ReplayClient, 아니면 실제 anthropic.Anthropic 반환."""
-    if _use_replay():
-        return ReplayClient()
-    import anthropic
-    return anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+    """데모/키미설정이면 ReplayClient, 아니면 실제 anthropic.Anthropic 반환 (프로세스당 1회 생성)."""
+    global _client
+    if _client is None:
+        if _use_replay():
+            _client = ReplayClient()
+        else:
+            import anthropic
+            _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+    return _client

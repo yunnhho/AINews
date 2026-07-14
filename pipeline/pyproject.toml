@@ -13,7 +13,8 @@ pydantic = "^2.10.0"
 pydantic-settings = "^2.6.0"
 redis = { version = "^5.2.0", extras = ["hiredis"] }
 anthropic = "^0.40.0"
-elasticsearch = { version = "^8.17.0", extras = ["async"] }
+# 색인은 backend app.services.search(opensearch-py) 재사용 — Bonsai OpenSearch 호환
+opensearch-py = { version = "^2.4", extras = ["async"] }
 feedparser = "^6.0.11"
 httpx = "^0.27.2"
 sentence-transformers = "^3.3.0"

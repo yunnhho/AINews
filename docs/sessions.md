@@ -1,5 +1,7 @@
 # AI Pulse — 8-Session Sprint Plan
 
+> **인수인계**: 의존성 elasticsearch→opensearch-py 교체, 이미지 재빌드 필요
+
 > **세션 간 인수인계 규칙**  
 > 각 세션 작업 완료 후, 다음 세션에 꼭 전달할 내용이 있으면  
 > **다음 세션 문서의 가장 위에 3-40자 이내로 추가**할 것.  

@@ -83,128 +83,61 @@ def _run_pipeline(batch_id: str, scheduled_hour: int = 0) -> dict:
     from pipeline.sources.group_d import collect_group_d1
     from pipeline.sources.group_d2 import collect_group_d2
 
-    collected_by_group: dict[str, int] = {
-        "A": 0, "B1": 0, "B2": 0, "B3": 0, "B4": 0, "C1": 0, "C2": 0, "D1": 0, "D2": 0,
-    }
-    published_by_type: dict[str, int] = {"NEWS": 0, "TECHNIQUE": 0}
-    failed_count = 0
-    api_tokens_used = 0
-    api_cost_usd = 0.0
-    deduplicated_count = 0
-
     # ① 소스별 수집
     # 데모 모드: 외부 소스를 호출하지 않고 고정 스냅샷에서 수집(오프라인·무비용·결정적).
     from pipeline.ai.demo_client import is_demo_mode
     if is_demo_mode():
         from pipeline.sources.demo_snapshot import collect_demo_snapshot
-        raw_items, snapshot_counts = collect_demo_snapshot()
-        collected_by_group.update(snapshot_counts)
-        total_collected = sum(collected_by_group.values())
-        logger.info(f"[{batch_id}] (DEMO) 스냅샷 수집: {collected_by_group} 총 {total_collected}건")
-        return _process_items(
-            batch_id, raw_items, collected_by_group, deduplicated_count,
-            published_by_type, failed_count, api_tokens_used, api_cost_usd,
+        raw_items, collected_by_group = collect_demo_snapshot()
+        logger.info(
+            f"[{batch_id}] (DEMO) 스냅샷 수집: {collected_by_group} 총 {len(raw_items)}건"
         )
+        return _process_items(batch_id, raw_items, collected_by_group, failed_count=0)
 
-    try:
-        group_a = collect_group_a()
-        collected_by_group["A"] = len(group_a)
-    except Exception as exc:
-        logger.error(f"[{batch_id}] Group A 수집 실패: {exc}", exc_info=True)
-        group_a = []
-        failed_count += 1
+    collectors = [
+        ("A", collect_group_a),
+        ("B1", collect_group_b1),
+        ("B2", lambda: collect_group_b2(scheduled_hour=scheduled_hour)),
+        ("B3", collect_group_b3),
+        ("B4", collect_group_b4),
+        ("C1", collect_group_c1),
+        ("C2", collect_group_c2),
+        ("D1", collect_group_d1),
+        ("D2", collect_group_d2),
+    ]
 
-    try:
-        group_b1 = collect_group_b1()
-        collected_by_group["B1"] = len(group_b1)
-    except Exception as exc:
-        logger.error(f"[{batch_id}] Group B-1 수집 실패: {exc}", exc_info=True)
-        group_b1 = []
-        failed_count += 1
+    collected_by_group: dict[str, int] = {}
+    raw_items: list = []
+    failed_count = 0
+    for key, collect in collectors:
+        try:
+            items = collect()
+        except Exception as exc:
+            logger.error(f"[{batch_id}] Group {key} 수집 실패: {exc}", exc_info=True)
+            items = []
+            failed_count += 1
+        collected_by_group[key] = len(items)
+        raw_items.extend(items)
 
-    try:
-        group_b2 = collect_group_b2(scheduled_hour=scheduled_hour)
-        collected_by_group["B2"] = len(group_b2)
-    except Exception as exc:
-        logger.error(f"[{batch_id}] Group B-2 수집 실패: {exc}", exc_info=True)
-        group_b2 = []
-        failed_count += 1
-
-    try:
-        group_b3 = collect_group_b3()
-        collected_by_group["B3"] = len(group_b3)
-    except Exception as exc:
-        logger.error(f"[{batch_id}] Group B-3 수집 실패: {exc}", exc_info=True)
-        group_b3 = []
-        failed_count += 1
-
-    try:
-        group_b4 = collect_group_b4()
-        collected_by_group["B4"] = len(group_b4)
-    except Exception as exc:
-        logger.error(f"[{batch_id}] Group B-4 수집 실패: {exc}", exc_info=True)
-        group_b4 = []
-        failed_count += 1
-
-    try:
-        group_c1 = collect_group_c1()
-        collected_by_group["C1"] = len(group_c1)
-    except Exception as exc:
-        logger.error(f"[{batch_id}] Group C-1 수집 실패: {exc}", exc_info=True)
-        group_c1 = []
-        failed_count += 1
-
-    try:
-        group_c2 = collect_group_c2()
-        collected_by_group["C2"] = len(group_c2)
-    except Exception as exc:
-        logger.error(f"[{batch_id}] Group C-2 수집 실패: {exc}", exc_info=True)
-        group_c2 = []
-        failed_count += 1
-
-    try:
-        group_d1 = collect_group_d1()
-        collected_by_group["D1"] = len(group_d1)
-    except Exception as exc:
-        logger.error(f"[{batch_id}] Group D-1 수집 실패: {exc}", exc_info=True)
-        group_d1 = []
-        failed_count += 1
-
-    try:
-        group_d2 = collect_group_d2()
-        collected_by_group["D2"] = len(group_d2)
-    except Exception as exc:
-        logger.error(f"[{batch_id}] Group D-2 수집 실패: {exc}", exc_info=True)
-        group_d2 = []
-        failed_count += 1
-
-    raw_items = group_a + group_b1 + group_b2 + group_b3 + group_b4 + group_c1 + group_c2 + group_d1 + group_d2
-    total_collected = sum(collected_by_group.values())
-    logger.info(f"[{batch_id}] 수집 완료: {collected_by_group} 총 {total_collected}건")
-
-    return _process_items(
-        batch_id, raw_items, collected_by_group, deduplicated_count,
-        published_by_type, failed_count, api_tokens_used, api_cost_usd,
-    )
+    logger.info(f"[{batch_id}] 수집 완료: {collected_by_group} 총 {len(raw_items)}건")
+    return _process_items(batch_id, raw_items, collected_by_group, failed_count)
 
 
 def _process_items(
     batch_id: str,
     raw_items: list,
     collected_by_group: dict[str, int],
-    deduplicated_count: int,
-    published_by_type: dict[str, int],
     failed_count: int,
-    api_tokens_used: int,
-    api_cost_usd: float,
 ) -> dict:
     """② 중복 제거 → ③ AI 처리 → 발행 (수집 이후 공통 단계)."""
+    published_by_type: dict[str, int] = {"NEWS": 0, "TECHNIQUE": 0}
+    api_tokens_used = 0
+    api_cost_usd = 0.0
 
     # ② 중복 필터링 (P2-5)
     from pipeline.filters.dedup import dedup
-    filtered_items, dedup_cnt = dedup(raw_items)
-    deduplicated_count = dedup_cnt
-    logger.info(f"[{batch_id}] 중복 제거: {dedup_cnt}건 → {len(filtered_items)}건 남음")
+    filtered_items, deduplicated_count = dedup(raw_items)
+    logger.info(f"[{batch_id}] 중복 제거: {deduplicated_count}건 → {len(filtered_items)}건 남음")
 
     # ③ AI 처리 + 발행 (P2-6 ~ P2-7)
     from pipeline.adapters.base import SourceGroup as SGroup

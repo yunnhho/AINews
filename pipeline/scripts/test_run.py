@@ -17,9 +17,8 @@ WINDOW_HOURS = float(sys.argv[2]) if len(sys.argv) > 2 else 96.0
 
 
 def main() -> None:
-    from pipeline.sources import group_a, group_b
-    group_a._WINDOW_HOURS = WINDOW_HOURS
-    group_b._WINDOW_HOURS = WINDOW_HOURS
+    from pipeline.sources import common
+    common.WINDOW_HOURS = WINDOW_HOURS
     from pipeline.sources.group_a import collect_group_a
     from pipeline.sources.group_b import collect_group_b1
     from pipeline.sources.group_b4 import collect_group_b4
