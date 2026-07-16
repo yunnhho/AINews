@@ -2,7 +2,9 @@
 
 > AI/LLM 뉴스·기법을 자동 수집하고, Claude로 요약·번역·분류해 카드 형태로 제공하는 큐레이션 플랫폼
 
-매일 4회(KST 00/06/12/18시) RSS·GitHub·엔지니어링 블로그·뉴스레터에서 AI 관련 콘텐츠를 수집한 뒤, 중복을 제거하고 Claude API로 **요약·한국어 번역·분류**를 거쳐 `NEWS`/`TECHNIQUE` 두 종류의 카드로 발행합니다. 웹(Next.js)·모바일(React Native)·관리자 대시보드를 모두 제공합니다.
+매일 4회(KST 00/06/12/18시) RSS·GitHub·엔지니어링 블로그·뉴스레터 49개 소스에서 AI 관련 콘텐츠를 수집한 뒤, 중복을 제거하고 Claude API로 **요약·한국어 번역·분류**를 거쳐 `NEWS`/`TECHNIQUE` 두 종류의 카드로 발행합니다. 웹(Next.js)·모바일(React Native)·관리자 대시보드를 모두 제공합니다.
+
+- **기간**: 2026.05 ~ 2026.07 (약 5주) · 개인 프로젝트
 
 ---
 
@@ -39,9 +41,9 @@
 | **번역 품질 검증** | 역번역 후 `sentence-transformers` 코사인 유사도 ≥0.85만 통과, 미달 시 재시도·수동 검토 큐 이관 |
 | **피드 API** | 커서 페이지네이션 + 카테고리/타입/태그 필터 + Redis 캐싱(TTL 5분) |
 | **개인화 추천** | 규칙 기반(80/20 다양성) → 협업 필터링(implicit ALS) 단계적 고도화, cold start 폴백 |
-| **한국어 검색** | Elasticsearch + nori 형태소 분석기 (Meilisearch에서 마이그레이션) |
-| **인증** | Google·GitHub·Kakao OAuth + JWT (만료 토큰 자동 정리·재로그인 유도) |
-| **보안** | 보안 헤더(CSP·HSTS·X-Frame-Options) + Redis 기반 IP 레이트리밋(fail-open) + 운영 시크릿/호스트 가드 |
+| **한국어 검색** | Elasticsearch + cjk 바이그램 커스텀 분석기 (Meilisearch에서 마이그레이션, 배포 환경 Bonsai OpenSearch 호환을 위해 opensearch-py 클라이언트로 재구성) |
+| **인증** | Google·GitHub·Kakao OAuth + JWT — 웹은 HttpOnly 쿠키 + CSRF 더블 서브밋 + Refresh 토큰 회전, 모바일은 Bearer 계약 유지 |
+| **보안** | 보안 헤더(CSP·HSTS·X-Frame-Options) + Redis 기반 IP 레이트리밋(fail-open, X-Forwarded-For 신뢰 홉 파싱) + 운영 시크릿/호스트 가드 |
 | **관리자 대시보드** | 배치 이력·소스 헬스체크·번역 품질·Claude API 비용 모니터링 + Slack/이메일 경보 |
 | **모바일** | Expo 앱 — 스와이프 제스처(좌=북마크, 우=스킵) + Expo 푸시 알림 |
 
@@ -56,7 +58,7 @@
 - **SQLAlchemy** 2.0 (async) + **asyncpg** + **Alembic** 마이그레이션
 - **PostgreSQL** 16 — 단일 `cards` 테이블 + 타입별 nullable 컬럼 구조
 - **Redis** 7 — 피드/추천 캐시 + Celery 브로커
-- **Elasticsearch** 8.17 (nori 한국어 형태소 분석기)
+- **Elasticsearch** 8.17 — cjk 바이그램 한국어 분석기, **opensearch-py** 클라이언트 (배포 환경 Bonsai OpenSearch 호환)
 - **Anthropic SDK** — 타입별 프롬프트 분리(요약·번역·분류)
 - **sentence-transformers** 3.3 (`paraphrase-multilingual-MiniLM-L12-v2`) — 번역 검증
 - **scikit-learn** — TF-IDF 중복 제거, implicit ALS 추천
@@ -80,9 +82,7 @@
 
 ### Infra / DevOps
 - **Docker Compose** — 로컬 전체 스택(postgres·redis·elasticsearch·api·worker·beat)
-- **GitHub Actions** — CI(테스트) + 배포
-- **AWS ECS Fargate** — API 서버·배치 워커 독립 스케일링
-- 모니터링: Sentry + Prometheus + Grafana
+- **데모 배포** — 프론트 Vercel + 백엔드 Railway/Fly.io (읽기 전용 데모 모드, [`DEPLOY.md`](DEPLOY.md))
 
 ### 품질 도구
 - **ruff**(lint) + **mypy**(타입) + **pytest** / **pytest-asyncio**
@@ -228,7 +228,7 @@ AINews/
 │   │   ├── schemas/      # Pydantic 스키마
 │   │   └── tasks/        # index_card, build_cf_model
 │   ├── alembic/          # 마이그레이션
-│   └── es/               # Elasticsearch 매핑(nori) + setup 스크립트
+│   └── es/               # Elasticsearch 매핑(cjk 바이그램) + setup 스크립트
 ├── pipeline/             # Celery 배치 워커
 │   └── pipeline/
 │       ├── adapters/     # rss, github, github_trending, hackernews, imap
@@ -252,7 +252,7 @@ AINews/
 
 개발 과정에서 마주친 문제들은 **[docs/problem-solution-result.md](docs/problem-solution-result.md)** 에 문제 → 해결 → 결과 형식으로 정리되어 있습니다.
 
-- **Part 1 — 예상한 문제 8건**: 한국어 검색(Meilisearch → ES nori), LLM 번역 환각(역번역 코사인 0.85 게이트), 멀티소스 중복(2단계 디듀프), AI 비용(프롬프트 분리 + 입력 절단 + 월 캡), 소스 불안정(헬스 추적 + 경보), 피드 지연(Redis 캐시), 추천 cold start(ALS + 규칙 폴백), 이종 카드 스키마(단일 테이블)
+- **Part 1 — 예상한 문제 8건**: 한국어 검색(Meilisearch → ES), LLM 번역 환각(역번역 코사인 0.85 게이트), 멀티소스 중복(2단계 디듀프), AI 비용(프롬프트 분리 + 입력 절단 + 월 캡), 소스 불안정(헬스 추적 + 경보), 피드 지연(Redis 캐시), 추천 cold start(ALS + 규칙 폴백), 이종 카드 스키마(단일 테이블)
 - **Part 2 — 실제 발생한 버그 14건**: 만료 JWT로 전 기능 401, Celery beat KST 시간대 버그, ES 매핑 이원화, libgomp 누락 크래시, 역번역 게이트 한계 사례 등
 - **Part 3 — 핵심 설계 과정**: 문서 선행 설계, "무료 필터를 유료 단계 앞에" 파이프라인 순서 원칙, fail-open vs fail-closed 일관 적용 등
 
