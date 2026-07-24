@@ -50,6 +50,27 @@ async def _index(card) -> None:
         pass
 
 
+async def _invalidate_feed_cache() -> None:
+    """발행으로 피드 내용이 바뀌었으니 피드 캐시 버전을 올려 무효화 (best-effort).
+
+    파이프라인은 run_sync가 매번 새 이벤트 루프를 쓰므로, 루프에 묶인 백엔드 redis
+    싱글턴 대신 단명 연결을 열어 INCR한 뒤 닫는다(check_source_health와 동일 패턴).
+    """
+    import os
+
+    import redis.asyncio as aioredis
+    try:
+        redis = aioredis.from_url(
+            os.getenv("REDIS_URL", "redis://redis:6379/0"), decode_responses=True
+        )
+        try:
+            await redis.incr("feed:ver")
+        finally:
+            await redis.aclose()
+    except Exception:
+        pass
+
+
 async def _save_card(
     card_data,
     card_type,
@@ -114,6 +135,7 @@ async def _save_card(
                 select(Card).options(selectinload(Card.tags)).where(Card.id == card.id)
             )
             await _index(result.scalar_one())
+            await _invalidate_feed_cache()
             return True
 
         except Exception:

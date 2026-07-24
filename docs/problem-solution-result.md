@@ -27,27 +27,36 @@
 - 카드 요약·문제·아이디어 필드가 **한국어 번역문**이라 검색 품질이 곧 서비스 품질.
 
 **해결**
-- **Elasticsearch 8.17 + nori 형태소 분석기**로 전환 (P6-2 / Session 8).
-- `nori_tokenizer` + `nori_part_of_speech` 필터로 커스텀 `korean` analyzer 구성,
-  nori 플러그인 포함 ES 이미지 직접 빌드(`backend/es/Dockerfile`).
+- **OpenSearch(Bonsai) + cjk_bigram 분석기**로 전환 (P6-2 / Session 8).
+  > ⚠️ **정정(코드 기준)**: 초기 설계 문서에는 "Elasticsearch + nori 형태소"로 적었으나,
+  > 실제 배포 대상인 **Bonsai 무료 티어가 OpenSearch만 제공하고 nori 같은 플러그인을 설치할 수 없어**
+  > 플러그인 불필요한 **cjk_bigram**으로 구현했다. 레포의 `backend/es/Dockerfile`(nori 포함 ES 이미지)은
+  > 자체 호스팅용 잔재이며 **런타임에서는 사용되지 않는다**. 아래 표·서술은 실제 구현(cjk) 기준으로 정정한다.
+- 커스텀 `korean` analyzer = `tokenizer: standard` + 필터 `[cjk_width, lowercase, cjk_bigram]`.
+  형태소 경계 대신 **문자 2-gram**으로 색인해 조사 변형(`임베딩을`/`임베딩이`)에도 겹치는 bigram을 만들어 재현율을 확보한다.
 - 검색 필드(`title`/`summary`/`problem`/`idea`)는 `korean` analyzer + `.en`(english) 서브필드,
   필터 필드(`category`/`card_type`/`difficulty`/`tags`)는 `keyword`로 분리 매핑.
-- 카드 INSERT 시 자동 인덱싱(`tasks/index_card.py`), `es/setup.py`로 멱등 초기화 + 전체 재색인.
+- 클라이언트는 `opensearchpy.AsyncOpenSearch`(ES 8.x 클라이언트는 OpenSearch를 product-check로 거부).
+  발행 시점에 색인(`index_card`), `es/setup.py`로 멱등 초기화 + 전체 재색인.
 
 ```
-backend/app/services/search.py   — AsyncElasticsearch 래퍼 + nori 매핑
-backend/es/mappings/cards.json   — 매핑 단일 출처
+backend/app/services/search.py   — AsyncOpenSearch 래퍼 + cjk 매핑 로드
+backend/es/mappings/cards.json   — 매핑 단일 출처 (analyzer: standard + cjk_bigram)
 backend/es/setup.py              — 인덱스 생성 + 전체 재인덱싱
 ```
 
 **결과**
 
-| 항목 | 이전(Meilisearch) | 이후(ES + nori) |
+| 항목 | 이전(Meilisearch) | 이후(OpenSearch + cjk_bigram) |
 |---|---|---|
-| 한국어 형태소 분석 | 미지원(공백/단순 토큰) | nori 형태소 단위 색인 `[설계목표]` |
+| 한국어 토크나이징 | 공백/단순 토큰 | cjk 바이그램 색인 `[측정]` |
 | 복합 필터(카테고리+타입+난이도) | 부분 지원 | term 필터 조합 완전 지원 `[측정]` |
-| `"RAG"` → `"RAG 패턴"` 연관 매칭 | 누락 | 형태소 매칭으로 재현 `[설계목표]` |
+| 조사 변형(`임베딩을`/`임베딩이`) 매칭 | 누락 | 겹치는 bigram으로 재현 `[설계목표]` |
 | 영어/키워드 검색 | — | `.en` 서브필드 + `tags.text`로 지원 `[측정]` |
+
+**정직한 트레이드오프**: cjk_bigram은 플러그인·사전 0으로 재현율을 확보하는 대신, 형태소 경계를 몰라
+**정밀도가 낮다**(`"모델"`이 `"모델링"`에도 bigram이 겹쳐 걸릴 수 있음). nori였다면 품사 필터로 더 정확했겠지만
+관리형 무료 티어 제약과 운영비용을 고려한 선택이다.
 
 ---
 
@@ -96,7 +105,9 @@ pipeline/pipeline/ai/publisher.py      — 미통과 카드 초안 처리
 - 2단계 디듀프(`pipeline/filters/dedup.py`):
   1. **URL SHA-256 해시** 완전 일치 제거 (배치 내 + DB 기존 카드).
   2. **TF-IDF 타이틀 유사도** — `char_wb` 분석기 `ngram(2,3)`로
-     코사인 유사도 **≥ 0.85** 쌍 제거. 충돌 시 **content가 더 긴 카드 유지**.
+     코사인 유사도 **≥ 0.9** 쌍 제거(코드 `_TITLE_SIM_THRESHOLD = 0.9` 기준). 충돌 시 **content가 더 긴 카드 유지**.
+- URL 해시 전 **정규화**(추적 파라미터 `utm_*`/`fbclid` 등 제거·프래그먼트 제거·말미 슬래시 정리)로
+  같은 기사의 UTM 변형을 동일 URL로 취급(`filters/dedup.py:_normalize_url`).
 - 디듀프를 AI 처리 **이전 단계**에 배치해 중복분 토큰 낭비 원천 차단.
 
 **결과**
@@ -104,7 +115,8 @@ pipeline/pipeline/ai/publisher.py      — 미통과 카드 초안 처리
 | 항목 | 이전(URL만) | 이후(URL + TF-IDF) |
 |---|---|---|
 | 동일 URL 중복 | 제거 | 제거 `[측정]` |
-| 제목 유사 재게시 | 통과(중복 노출) | 0.85 유사도로 제거 `[설계목표]` |
+| UTM/프래그먼트 변형 URL | 통과(중복 노출) | 정규화 후 동일 URL로 제거 `[측정]` |
+| 제목 유사 재게시 | 통과(중복 노출) | 0.9 유사도로 제거 `[설계목표]` |
 | 중복 시 보존 기준 | 임의 | 더 긴 본문 우선 `[측정]` |
 | AI 비용 영향 | 중복분까지 호출 | 중복 제거 후 호출(비용 ↓) `[예상]` |
 

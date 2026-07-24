@@ -23,9 +23,9 @@ Cron: 0 0,6,12,18 * * * (KST)
    └─ [D] 뉴스레터        → Substack RSS / IMAP
 
 ③ 중복·유사 필터링
-   ├─ URL 완전 일치 제거
-   ├─ 제목 TF-IDF 유사도 ≥ 0.9 → 대표 1건만 유지
-   └─ 이전 배치 처리 이력 제거
+   ├─ URL 정규화(utm_*·fbclid 등 추적 파라미터·프래그먼트 제거) 후 완전 일치 제거
+   ├─ 제목 TF-IDF 유사도 ≥ 0.9 → 대표 1건만 유지(더 긴 본문 보존)
+   └─ 이전 배치 처리 이력 제거(발행 시 source_url DB 존재 체크)
 
 ④ 카드 타입 자동 판정 (LLM)
    ├─ 코드 블록 / GitHub 링크 / "how to" → TECHNIQUE
@@ -52,7 +52,7 @@ Cron: 0 0,6,12,18 * * * (KST)
    ├─ cards 테이블 INSERT
    ├─ card_tags 테이블 INSERT
    ├─ translation_logs 기록
-   └─ Redis 피드 캐시 무효화
+   └─ Redis 피드 캐시 무효화 (feed:ver INCR — 버전 네임스페이스 일괄 무효화)
 
 ⑧ 배치 결과 로깅 (batch_logs 테이블)
    ├─ 소스 그룹별: 수집 N / 중복 제거 N / 발행 N

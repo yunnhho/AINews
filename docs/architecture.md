@@ -67,8 +67,8 @@
 | 스케줄러 | Celery Beat | KST 0/6/12/18시 배치 트리거 |
 | 메인 DB | PostgreSQL (RDS / Neon) | 카드·사용자·로그 영구 저장 |
 | 캐시 / 큐 | Redis (Upstash / ElastiCache) | 피드 캐시, 추천 캐시, Celery 브로커 |
-| 검색 엔진 | Meilisearch → Elasticsearch | 한국어 태그·카테고리 복합 검색 |
-| AI 처리 | Claude API + LangChain | 요약·번역·분류 프롬프트 체이닝 |
+| 검색 엔진 | Meilisearch → OpenSearch(Bonsai, cjk_bigram) | 한국어 태그·카테고리 복합 검색 (nori 아님 — 무료 티어 플러그인 제약) |
+| AI 처리 | Claude API | 타입별 프롬프트로 요약·번역·분류 |
 | 번역 검증 | sentence-transformers (로컬) | 역번역 코사인 유사도 계산 (비용 0) |
 | 모니터링 | Sentry + Grafana + Prometheus | 에러 추적·배치 상태·API 성능 |
 | CI/CD | GitHub Actions | PR 자동 테스트 + ECR 푸시 + 배포 |

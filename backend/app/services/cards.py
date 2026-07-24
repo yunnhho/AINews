@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,6 +11,26 @@ from app.redis import get_redis
 from app.schemas.cards import FeedResponse, NewsCardResponse, TechniqueCardResponse
 
 FEED_CACHE_TTL = 300  # 5분
+_FEED_VERSION_KEY = "feed:ver"  # 피드 캐시 네임스페이스 버전 (발행 시 INCR로 일괄 무효화)
+
+
+async def _feed_version(redis) -> str:
+    """현재 피드 캐시 버전. 없으면 '0'. 모든 캐시 키에 접두어로 붙는다."""
+    v = await redis.get(_FEED_VERSION_KEY)
+    return v if v is not None else "0"
+
+
+async def invalidate_feed_cache() -> None:
+    """피드 캐시 전체 무효화 — 버전을 올려 기존 키 네임스페이스를 통째로 폐기한다.
+
+    조합 폭발한 키를 SCAN/DEL로 훑지 않고 O(1)로 무효화한다(기존 키는 TTL로 자연 소멸).
+    카드 발행/삭제 등 피드 내용이 바뀌는 시점에 호출한다. best-effort: 실패해도 TTL이 방어한다.
+    """
+    try:
+        redis = await get_redis()
+        await redis.incr(_FEED_VERSION_KEY)
+    except Exception:
+        pass
 
 
 def _cache_key(
@@ -23,6 +43,30 @@ def _cache_key(
 ) -> str:
     tags_str = ",".join(sorted(tags))
     return f"feed:{category}:{card_type}:{tags_str}:{difficulty}:{cursor}:{limit}"
+
+
+def _encode_cursor(card: Card) -> str:
+    """복합 커서 = published_at + id. 동일 published_at 동점에서도 안정적으로 이어진다."""
+    return f"{card.published_at.isoformat()}|{card.id}"
+
+
+def _decode_cursor(cursor: str) -> tuple[datetime, int | None] | None:
+    """커서 문자열을 (published_at, id)로 파싱.
+
+    - 신규 형식 'ISO|id' → (datetime, id)
+    - 구(舊) 형식 'ISO'(id 없음) → (datetime, None)  ← 하위호환
+    - 파싱 불가 → None (커서 무시하고 첫 페이지)
+    """
+    ts_part, _, id_part = cursor.rpartition("|")
+    if ts_part:  # 'ISO|id' 형식
+        try:
+            return datetime.fromisoformat(ts_part), int(id_part)
+        except ValueError:
+            return None
+    try:  # 구 형식(타임스탬프 단독)
+        return datetime.fromisoformat(id_part), None
+    except ValueError:
+        return None
 
 
 def _serialize_card(card: Card, liked_ids: set[int], bookmarked_ids: set[int]) -> dict:
@@ -71,10 +115,10 @@ async def get_feed(
     tags = tags or []
     limit = min(limit, 50)
 
-    cache_key = _cache_key(
+    redis = await get_redis()
+    cache_key = f"{await _feed_version(redis)}:" + _cache_key(
         category, card_type, tags, difficulty or "", cursor or "", limit
     )
-    redis = await get_redis()
 
     cached = await redis.get(cache_key)
     if cached:
@@ -90,7 +134,8 @@ async def get_feed(
         select(Card)
         .options(selectinload(Card.tags))
         .where(Card.is_published.is_(True))
-        .order_by(Card.published_at.desc())
+        # 복합 정렬: 동일 published_at 동점을 id로 타이브레이크해 커서 경계에서 행 누락/중복을 막는다.
+        .order_by(Card.published_at.desc(), Card.id.desc())
     )
 
     if category != "all":
@@ -100,11 +145,15 @@ async def get_feed(
     if difficulty:
         stmt = stmt.where(Card.difficulty == Difficulty(difficulty))
     if cursor:
-        try:
-            cursor_dt = datetime.fromisoformat(cursor)
-            stmt = stmt.where(Card.published_at < cursor_dt)
-        except ValueError:
-            pass
+        decoded = _decode_cursor(cursor)
+        if decoded is not None:
+            cursor_dt, cursor_id = decoded
+            if cursor_id is not None:
+                # (published_at, id) 튜플 비교 — DESC 순에서 커서보다 "뒤"의 행만.
+                stmt = stmt.where(tuple_(Card.published_at, Card.id) < (cursor_dt, cursor_id))
+            else:
+                # 구 형식 커서(타임스탬프 단독) 하위호환 — 동점 경계는 보장 못 하나 동작은 유지.
+                stmt = stmt.where(Card.published_at < cursor_dt)
     if tags:
         from app.models.card import CardTag, Tag
         for slug in tags:
@@ -119,7 +168,7 @@ async def get_feed(
     if has_more:
         cards = cards[:limit]
 
-    next_cursor = cards[-1].published_at.isoformat() if (has_more and cards) else None
+    next_cursor = _encode_cursor(cards[-1]) if (has_more and cards) else None
 
     serialized = [_serialize_card(c, set(), set()) for c in cards]
     await redis.setex(cache_key, FEED_CACHE_TTL, json.dumps({"items": serialized, "next_cursor": next_cursor, "has_more": has_more}))

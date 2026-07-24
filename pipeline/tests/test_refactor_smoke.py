@@ -116,6 +116,56 @@ def test_dedup_near_duplicate_title_keeps_longer_content():
     assert result[0].content == long_item.content
 
 
+def test_dedup_normalizes_tracking_params():
+    """같은 기사의 UTM/프래그먼트 변형은 정규화 후 동일 URL로 중복 제거된다."""
+    items = [
+        _raw_item("https://x.com/article", "Article", content="canonical"),
+        _raw_item("https://x.com/article?utm_source=newsletter&utm_medium=email", "Article dup", content="short"),
+        _raw_item("https://x.com/article#section-2", "Article dup2", content="short"),
+    ]
+    result, count = dedup(items)
+    assert len(result) == 1
+    assert count == 2
+
+
+def test_dedup_keeps_meaningful_query_params():
+    """추적 파라미터가 아닌 실질 쿼리(id 등)가 다르면 서로 다른 URL로 본다."""
+    items = [
+        _raw_item("https://x.com/p?id=1", "Post 1"),
+        _raw_item("https://x.com/p?id=2", "Post 2"),
+    ]
+    result, count = dedup(items)
+    assert len(result) == 2
+    assert count == 0
+
+
+def test_collect_sources_slow_source_times_out():
+    """지연 소스는 타임아웃으로 격리되고 빠른 소스는 정상 수집된다."""
+    import pipeline.sources.common as common
+    health_svc, originals, calls = _patch_health_svc()
+    old_timeout, old_deadline = common._SOURCE_TIMEOUT, common._PHASE_DEADLINE
+    common._SOURCE_TIMEOUT, common._PHASE_DEADLINE = 0.3, 1.0
+    try:
+        import time as _t
+
+        def fetch_slow(since):
+            _t.sleep(5)  # 타임아웃(0.3s)을 초과
+            return [_raw_item("https://a.com/slow", "SLOW")]
+
+        def fetch_fast(since):
+            return [_raw_item("https://a.com/fast", "FAST")]
+
+        result = collect_sources("test", "NEWS_RSS", [("slow", fetch_slow), ("fast", fetch_fast)])
+        urls = {r.url for r in result}
+        assert "https://a.com/fast" in urls
+        assert "https://a.com/slow" not in urls
+        assert [f[0] for f in calls["failure"]] == ["slow"]
+        assert [s[0] for s in calls["success"]] == ["fast"]
+    finally:
+        common._SOURCE_TIMEOUT, common._PHASE_DEADLINE = old_timeout, old_deadline
+        _restore_health_svc(health_svc, originals)
+
+
 def _patch_health_svc():
     """pipeline.models.source_health 모듈 속성을 스텁으로 교체. (원본, 복원용 dict) 반환."""
     import pipeline.models.source_health as health_svc
